@@ -1,0 +1,11 @@
+[SteamStub 32 variant1]
+signature = E8 00 00 00 00 50 53 51 52 56 57 55 8B 44 24 1C 2D 05 00 00 00 8B CC 83 E4 F0 51 51 51 50
+ep_only = true
+
+[SteamStub 32 variant2]
+signature = 53 51 52 56 57 55 8B EC 81 EC 00 10 00 00 C7
+ep_only = true
+
+[SteamStub 32 variant3]
+signature = 53 51 52 56 57 55 8B EC 81 EC 00 10 00 00 BE
+ep_only = true
