@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 from elfesteem import *
 
 def create_makefile(res_dir, makefile_name, fake_c_name, fake_asm_name, fake_dll):
@@ -10,14 +11,6 @@ del *.obj
 del *.exp
 '''
     open(res_dir + makefile_name, "wb").write(makefile)
-
-def create_fake_header(l_export):
-    fd_out = open(FAKE_H_NAME, "w")
-    fd_out.write("#ifndef _UPLAY_R164_H\n#define _UPLAY_R164_H\n\n")
-    for name, virt in l_export:
-        fd_out.write("__declspec(dllexport) void* %s(void);\n\n" % name)
-    fd_out.write('#endif\n')
-    fd_out.close()    
 
 def create_fake_asm(l_export, res_dir, fake_asm_name):
     asm_head = '''.data
@@ -111,7 +104,7 @@ ENDM
     fd_out.write("\n\nend\n")
     fd_out.close()
 
-def create_fake_c(l_export, res_dir, fake_c_name):
+def create_fake_c(l_export, res_dir, fake_c_name, original_dll):
     real_out = ""
     real_getproc = ""
     for name, virt in l_export:
@@ -225,7 +218,7 @@ void hexdump(void *data, int size)
 
 #if TRAMPO
 
-#define ORIGINAL_DLL_NAME "uplay_r164_original.dll"
+#define ORIGINAL_DLL_NAME "'''+original_dll+'''"
 
 VOID LoadRealExport(VOID)
 {
@@ -369,5 +362,6 @@ if __name__ == '__main__':
         createdir(res_dir)
         create_makefile(res_dir, makefile_name, fake_c_name, fake_asm_name, fake_dll)
         create_fake_asm(l_export, res_dir, fake_asm_name)
-        create_fake_c(l_export, res_dir, fake_c_name)
+        shutil.copyfile(sys.argv[1], res_dir + original_dll)
+        create_fake_c(l_export, res_dir, fake_c_name, original_dll)
         append_fake_export(l_export, res_dir, fake_c_name)
