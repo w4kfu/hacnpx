@@ -91,17 +91,6 @@ class Buffer:
         self.pos += 4
         return dword
 
-    def GetQword(self):
-        qword = struct.unpack("<Q", self.buf[self.pos: self.pos + 8])[0]
-        self.pos += 8
-        return qword
-
-    def GetBuffer(self):
-        size = self.GetDword()
-        b = self.buf[self.pos:self.pos + size]
-        self.pos += size
-        return b
-
 def hexdump(src, length=16):
     FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
     lines = []
@@ -136,19 +125,15 @@ def uncomp(b, size):
 
 def handle_ico(b, pos, nb=0):
     b.pos = pos
-    unk_byte_00 = b.GetByte()
-    unk_byte_01 = b.GetByte()
-    unk_byte_02 = b.GetByte()
-    unk_byte_03 = b.GetByte()
+    flag = b.GetWord()
+    unk_word_01 = b.GetWord()
     width = b.GetWord()
     height = b.GetWord()
-    print "[+] unk_byte_00  = %02X" % unk_byte_00
-    print "[+] unk_byte_01  = %02X" % unk_byte_01
-    print "[+] unk_byte_02  = %02X" % unk_byte_02
-    print "[+] unk_byte_03  = %02X" % unk_byte_03
-    print "[+] width  = %04X" % width
-    print "[+] height  = %04X" % height
-    if unk_byte_00 & 0x01:
+    print "[+] flag         = %04X" % flag
+    print "[+] unk_word_01  = %04X" % unk_word_01
+    print "[+] width        = %04X" % width
+    print "[+] height       = %04X" % height
+    if flag & 0x01:
         res_buf = uncomp(b, width * height)
         print hexdump(res_buf, width)
         new_buf = ""
@@ -158,16 +143,17 @@ def handle_ico(b, pos, nb=0):
         i = i.transpose(Image.FLIP_TOP_BOTTOM)
         i.save("res_dir/%d.png" % nb)
     else:
-        print "STFU"
+        print "[-] Unknow flag"
 
-FILENAME = "ICONS.ALL"
-createdir("res_dir")
-b = Buffer(open(FILENAME, "rb").read())
-for i in xrange(0, 0x79):
-    pos = b.GetDword()
-    unk_dword_00 = b.GetDword()
-    print "[+] pos          = %08X" % pos
-    print "[+] unk_dword_00 = %08X" % unk_dword_00
-    save_pos = b.pos
-    handle_ico(b, pos, i)
-    b.pos = save_pos
+if __name__ == '__main__':
+    FILENAME = "ICONS.ALL"
+    createdir("res_dir")
+    b = Buffer(open(FILENAME, "rb").read())
+    for i in xrange(0, 0x79):
+        pos = b.GetDword()
+        unk_dword_00 = b.GetDword()
+        print "[+] pos          = %08X" % pos
+        print "[+] unk_dword_00 = %08X" % unk_dword_00
+        save_pos = b.pos
+        handle_ico(b, pos, i)
+        b.pos = save_pos
