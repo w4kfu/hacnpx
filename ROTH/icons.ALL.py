@@ -4,71 +4,6 @@ import Image
 
 # http://www.pythonware.com/products/pil/
 
-class Buffer:
-    def __init__(self, buf):
-        self.buf = buf
-        self.length = len(self.buf)
-        self.pos = 0
-
-    def GetByte(self):
-        byte = struct.unpack("<B", self.buf[self.pos: self.pos + 1])[0]
-        self.pos += 1
-        return byte
-
-    def GetWord(self):
-        word = struct.unpack("<H", self.buf[self.pos: self.pos + 2])[0]
-        self.pos += 2
-        return word
-
-    def GetDword(self):
-        dword = struct.unpack("<I", self.buf[self.pos: self.pos + 4])[0]
-        self.pos += 4
-        return dword
-
-    def GetQword(self):
-        qword = struct.unpack("<Q", self.buf[self.pos: self.pos + 8])[0]
-        self.pos += 8
-        return qword
-
-    def GetBuffer(self):
-        size = self.GetDword()
-        b = self.buf[self.pos:self.pos + size]
-        self.pos += size
-        return b
-
-def hexdump(src, length=16):
-    FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
-    lines = []
-    for c in xrange(0, len(src), length):
-        chars = src[c:c+length]
-        hex = ' '.join(["%02x" % ord(x) for x in chars])
-        printable = ''.join(["%s" % ((ord(x) <= 127 and FILTER[ord(x)]) or '.') for x in chars])
-        lines.append("%04x  %-*s  %s\n" % (c, length*3, hex, printable))
-    return ''.join(lines).rstrip('\n')
-
-def createdir(dirname):
-    try:
-        os.stat(dirname)
-    except:
-        os.mkdir(dirname)
-
-def unstfu(b, size):
-    res_buf = ""
-    while size > 0:
-        while True:
-            r = b.GetByte()
-            if r >= 0xF1:
-                break
-            res_buf += chr(r)
-            size = size - 1
-            if size <= 0:
-                return res_buf
-        nb = (r + 0x10) & 0xFF
-        val = b.GetByte()
-        res_buf += (chr(val) * nb)
-        size = size - nb
-    return res_buf
-
 pal_0 = [
 (0x00, 0x00, 0x00),(0x00, 0x00, 0x00),(0x04, 0x44, 0x20),(0x48, 0x6C, 0x50),
 (0x00, 0x50, 0x28),(0x34, 0x64, 0x40),(0x08, 0x3C, 0x1C),(0x00, 0x00, 0x00),
@@ -135,36 +70,99 @@ pal_0 = [
 (0xFC, 0xC8, 0x50),(0x00, 0x00, 0x00),(0xFC, 0xA8, 0x3C),(0x00, 0x00, 0x00),
 (0xC0, 0x88, 0x30),(0x00, 0x00, 0x00),(0x48, 0x54, 0x68),(0x70, 0x00, 0xC8)]
 
+class Buffer:
+    def __init__(self, buf):
+        self.buf = buf
+        self.length = len(self.buf)
+        self.pos = 0
+
+    def GetByte(self):
+        byte = struct.unpack("<B", self.buf[self.pos: self.pos + 1])[0]
+        self.pos += 1
+        return byte
+
+    def GetWord(self):
+        word = struct.unpack("<H", self.buf[self.pos: self.pos + 2])[0]
+        self.pos += 2
+        return word
+
+    def GetDword(self):
+        dword = struct.unpack("<I", self.buf[self.pos: self.pos + 4])[0]
+        self.pos += 4
+        return dword
+
+    def GetQword(self):
+        qword = struct.unpack("<Q", self.buf[self.pos: self.pos + 8])[0]
+        self.pos += 8
+        return qword
+
+    def GetBuffer(self):
+        size = self.GetDword()
+        b = self.buf[self.pos:self.pos + size]
+        self.pos += size
+        return b
+
+def hexdump(src, length=16):
+    FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
+    lines = []
+    for c in xrange(0, len(src), length):
+        chars = src[c:c+length]
+        hex = ' '.join(["%02x" % ord(x) for x in chars])
+        printable = ''.join(["%s" % ((ord(x) <= 127 and FILTER[ord(x)]) or '.') for x in chars])
+        lines.append("%04x  %-*s  %s\n" % (c, length*3, hex, printable))
+    return ''.join(lines).rstrip('\n')
+
+def createdir(dirname):
+    try:
+        os.stat(dirname)
+    except:
+        os.mkdir(dirname)
+
+def uncomp(b, size):
+    res_buf = ""
+    while size > 0:
+        while True:
+            r = b.GetByte()
+            if r >= 0xF1:
+                break
+            res_buf += chr(r)
+            size = size - 1
+            if size < 0:
+                return res_buf
+        nb = (r + 0x10) & 0xFF
+        res_buf += (chr(b.GetByte()) * nb)
+        size = size - nb
+    return res_buf
+
 def handle_ico(b, pos, nb=0):
     b.pos = pos
     unk_byte_00 = b.GetByte()
     unk_byte_01 = b.GetByte()
     unk_byte_02 = b.GetByte()
     unk_byte_03 = b.GetByte()
-    unk_word_00 = b.GetWord()
-    unk_word_01 = b.GetWord()
+    width = b.GetWord()
+    height = b.GetWord()
     print "[+] unk_byte_00  = %02X" % unk_byte_00
     print "[+] unk_byte_01  = %02X" % unk_byte_01
     print "[+] unk_byte_02  = %02X" % unk_byte_02
     print "[+] unk_byte_03  = %02X" % unk_byte_03
-    print "[+] unk_word_00  = %04X" % unk_word_00
-    print "[+] unk_word_01  = %04X" % unk_word_01
+    print "[+] width  = %04X" % width
+    print "[+] height  = %04X" % height
     if unk_byte_00 & 0x01:
-        res_buf = unstfu(b, unk_word_00 * unk_word_01)
-        print hexdump(res_buf, unk_word_00)
+        res_buf = uncomp(b, width * height)
+        print hexdump(res_buf, width)
         new_buf = ""
         for i in xrange(0, len(res_buf)):
              new_buf += chr(pal_0[ord(res_buf[i])][0]) + chr(pal_0[ord(res_buf[i])][1]) + chr(pal_0[ord(res_buf[i])][2])
-        i = Image.frombuffer("RGB", (unk_word_00, unk_word_01), new_buf)
+        i = Image.frombuffer("RGB", (width, height), new_buf)
         i = i.transpose(Image.FLIP_TOP_BOTTOM)
         i.save("res_dir/%d.png" % nb)
     else:
-        print "[-] Unknow flag"
+        print "STFU"
 
 FILENAME = "ICONS.ALL"
-
-b = Buffer(open(FILENAME, "rb").read())
 createdir("res_dir")
+b = Buffer(open(FILENAME, "rb").read())
 for i in xrange(0, 0x79):
     pos = b.GetDword()
     unk_dword_00 = b.GetDword()
