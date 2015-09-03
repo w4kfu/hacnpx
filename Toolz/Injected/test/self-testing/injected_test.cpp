@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     ULONG_PTR BaseOfImage = 0;
     HMODULE hMod = NULL;
     std::list<EXPORTENTRY> lExport;
-    
+
     DbgMsg("[+] Launching test\n");
     MyRtlPcToFileHeader((ULONG_PTR)main, &BaseOfImage);
     DbgMsg("[+] BaseOfImage : "HEX_FORMAT"\n", BaseOfImage);

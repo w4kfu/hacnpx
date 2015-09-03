@@ -1,4 +1,4 @@
-include_directories(${CMAKE_SOURCE_DIR}/src/include/)  
+include_directories(${CMAKE_SOURCE_DIR}/src/include/)
 
 set(FILES_TEST_SRC injected_test.cpp)
 
