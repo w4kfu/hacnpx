@@ -51,21 +51,7 @@ typedef struct _PUSHED_REGS {
 
 BOOL SetupIATHook(ULONG_PTR BaseAddress, LPCSTR ModName, LPCSTR ProcName, PROC pfnNew);
 BOOL ReplaceIATEntryInMod(ULONG_PTR BaseAddress, LPCSTR ModName, PROC pfnCurrent, PROC pfnNew);
-
-/*
-DWORD __declspec (naked) HookScriptEntry(VOID)
-{
-    __asm
-    {
-        pushad
-        lea     eax, [esp]
-        push    eax
-        call    ScriptEntry
-        add     esp, 4
-        popad
-        jmp     ResumeScriptEntry
-    }
-}
-*/
+BOOL SetupInlineHook(LPCSTR ModName, LPCSTR ProcName, PROC pfnNew);
+BOOL SetupInlineHook(ULONG_PTR Addr, PROC pfnNew);
 
 #endif // __HOOKSTUFF_H__
