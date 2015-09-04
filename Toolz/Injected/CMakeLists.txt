@@ -38,8 +38,10 @@ SET(LINK_LIBS ${LINK_LIBS} Dbghelp.lib)
 
 if (${CMAKE_SIZEOF_VOID_P} EQUAL 8)
     SET(LINK_LIBS ${LINK_LIBS} ${PROJECT_SOURCE_DIR}/lib/LDE64x64.lib)
+    SET(LINK_LIBS ${LINK_LIBS} ${PROJECT_SOURCE_DIR}/lib/capstonex64.lib)
 elseif (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
     SET(LINK_LIBS ${LINK_LIBS} ${PROJECT_SOURCE_DIR}/lib/LDE64.lib)
+    SET(LINK_LIBS ${LINK_LIBS} ${PROJECT_SOURCE_DIR}/lib/capstone.lib)
 endif()
 
 add_subdirectory(src/)

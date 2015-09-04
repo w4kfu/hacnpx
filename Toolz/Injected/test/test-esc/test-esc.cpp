@@ -4,8 +4,9 @@ LONG CALLBACK CallBackNearOEP(PEXCEPTION_POINTERS ExceptionInfo)
 {
     DbgMsg("[+] CallBackNearOEP\n");
     DbgMsg("[+] IP : "HEX_FORMAT"\n", GET_IP(ExceptionInfo));
-    DumpPE((ULONG_PTR)GetModuleHandle(NULL), "test_dumped.exe");
-    DebugBreak();
+    DisasAt((PBYTE)GET_IP(ExceptionInfo), 0x40, GET_IP(ExceptionInfo));
+    //DumpPE((ULONG_PTR)GetModuleHandle(NULL), "test_dumped.exe");
+    //DebugBreak();
     return EXCEPTION_CONTINUE_EXECUTION;
 }
 

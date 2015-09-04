@@ -5,13 +5,14 @@
 
 #include "breakpoint.h"
 #include "dbg.h"
+#include "disas.h"
 #include "dump.h"
+#include "hookstuff.h"
 #include "injected.h"
 #include "memory.h"
 #include "modules.h"
 #include "pestuff.h"
 #include "utils.h"
-#include "hookstuff.h"
 
 #ifdef _WIN64
     typedef PIMAGE_NT_HEADERS64 PIMAGE_NT_HEADERS;
