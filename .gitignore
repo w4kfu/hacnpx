@@ -1,2 +1,6 @@
 *.exe
 *.dll
+cmake/
+cmake64/
+dbg_msg.txt
+note.txt
