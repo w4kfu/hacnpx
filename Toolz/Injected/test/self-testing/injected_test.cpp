@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     (void)argv;
     ULONG_PTR BaseOfImage = 0;
     HMODULE hMod = NULL;
-    std::list<EXPORTENTRY> lExport;
+    std::list<PEXPORTENTRY> lExport;
 
     DbgMsg("[+] Launching test\n");
     MyRtlPcToFileHeader((ULONG_PTR)main, &BaseOfImage);
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     DbgMsg("[+] IsBadReadMemory(0x42424242) : %d\n", IsBadReadMemory((void*)0x42424242, 0));
     hMod = GetModuleHandleA("kernel32.dll");
     DbgMsg("[+] hMod : "HEX_FORMAT"\n", hMod);
-    lExport = GetExport((ULONG_PTR)hMod);
+    lExport = GetExportList((ULONG_PTR)hMod);
     PrintExportEntry(lExport);
     DumpPE((ULONG_PTR)GetModuleHandle(NULL), "test_dumped.exe");
     //DebugBreak();
