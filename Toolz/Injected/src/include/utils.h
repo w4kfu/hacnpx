@@ -14,6 +14,8 @@ typedef struct _PE_INFO {
     DWORD ModuleNbSections;
     ULONG_PTR ModuleInjectedBase;
     DWORD ModuleInjectedSize;
+    std::list<PMODULE> lModule;
+    IMPORTER Importer;
 } PE_INFO, *PPE_INFO;
 
 #if _WIN64

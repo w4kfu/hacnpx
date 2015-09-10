@@ -5,6 +5,8 @@
 #include <TlHelp32.h>
 #include <stdio.h>
 
+#include "injected.h"
+
 enum CHAMP_MODULE
 {
     MOD_BASE = 0,
@@ -13,5 +15,7 @@ enum CHAMP_MODULE
 
 PVOID GetModuleInfo(ULONG_PTR Addr, DWORD dwChamp);
 BOOL MyRtlPcToFileHeader(ULONG_PTR Addr, PULONG_PTR BaseOfImage);
+std::list<PMODULE> GetModuleList(VOID);
+PMODULE GetModule(ULONG_PTR Addr);
 
 #endif // __MODULES_H__

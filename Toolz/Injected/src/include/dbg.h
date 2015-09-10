@@ -19,7 +19,9 @@
 VOID MakeConsole(VOID);
 VOID HexDump(PVOID *data, SSIZE_T size);
 VOID DbgMsg(LPCSTR szFormat, ...);
-VOID PrintExportEntry(std::list<EXPORTENTRY> lExport);
+VOID PrintExportEntry(std::list<PEXPORTENTRY> lExport);
 VOID PrintPeInfo(VOID);
+VOID PrintModuleInfo(VOID);
+VOID PrintInfoImporter(PIMPORTER Importer);
 
 #endif // __DBG_H__

@@ -92,9 +92,9 @@ VOID HexDump(PVOID *data, SSIZE_T size)
     }
 }
 
-VOID PrintExportEntry(std::list<EXPORTENTRY> lExport)
+VOID PrintExportEntry(std::list<PEXPORTENTRY> lExport)
 {
-    std::list<EXPORTENTRY>::const_iterator it;
+    std::list<PEXPORTENTRY>::const_iterator it;
 
 #if _WIN64
     DbgMsg("Name                                               FunctionVA         FunctionRVA Ordinal\n");
@@ -104,7 +104,23 @@ VOID PrintExportEntry(std::list<EXPORTENTRY> lExport)
     DbgMsg("================================================== ========== =========== =========\n");
 #endif
     for (it = lExport.begin(); it != lExport.end(); ++it) {
-        DbgMsg("%-50s "HEX_FORMAT" 0x%08X  0x%04X\n", (*it).FunctionName, (*it).FunctionVA, (*it).FunctionRVA, (*it).Ordinal);
+        DbgMsg("%-50s "HEX_FORMAT" 0x%08X  0x%04X\n", (*it)->FunctionName, (*it)->FunctionVA, (*it)->FunctionRVA, (*it)->Ordinal);
+    }
+}
+
+VOID PrintModuleInfo(VOID)
+{
+    std::list<PMODULE>::const_iterator it;
+
+#if _WIN64
+    DbgMsg("Name                           ModuleBase         ModuleSize NbExports\n");
+    DbgMsg("============================== ================== ========== =========\n");
+#else
+    DbgMsg("Name                           ModuleBase ModuleSize NbExports\n");
+    DbgMsg("============================== ========== ========== =========\n");
+#endif
+    for (it = pinfo.lModule.begin(); it != pinfo.lModule.end(); ++it) {
+        DbgMsg("%-30s "HEX_FORMAT" 0x%08X %d\n", (*it)->szModule, (*it)->modBaseAddr, (*it)->modBaseSize, (*it)->lExport.size());
     }
 }
 
@@ -114,4 +130,14 @@ VOID PrintPeInfo(VOID)
     DbgMsg("[+] ModuleSize         : 0x%08X (%d)\n", pinfo.ModuleSize, pinfo.ModuleSize);
     DbgMsg("[+] ModuleNbSections   : 0x%08X (%d)\n", pinfo.ModuleNbSections, pinfo.ModuleNbSections);
     DbgMsg("[+] RVA EntryPoint     : 0x%08X\n", pinfo.EntryPoint);
+}
+
+VOID PrintInfoImporter(PIMPORTER Importer)
+{
+    std::list<PMODULE>::const_iterator it;
+
+    DbgMsg("[+] nb modules : 0x%08X (%d)\n", Importer->lModule.size(), Importer->lModule.size());
+    for (it = Importer->lModule.begin(); it != Importer->lModule.end(); ++it) {
+        DbgMsg("[+] %-30s has 0x%08X (%d) API\n", (*it)->szModule, (*it)->lExport.size(), (*it)->lExport.size());
+    }
 }

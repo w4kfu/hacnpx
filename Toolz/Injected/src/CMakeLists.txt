@@ -4,6 +4,7 @@ set(INJECTED_FILES_SRC
     disas.cpp
     dump.cpp
     hookstuff.cpp
+    iatstuff.cpp
     injected.cpp
     modules.cpp
     memory.cpp

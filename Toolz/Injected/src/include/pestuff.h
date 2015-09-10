@@ -13,7 +13,17 @@ enum CHAMP_PE
     SIZE_OF_IMAGE,
     NB_SECTIONS,
     PE_SECTIONS,
-    ENTRY_POINT
+    ENTRY_POINT,
+    IMPORT_TABLE,
+    IMPORT_TABLE_SIZE,
+    IMPORT_ADDRESS_TABLE,
+    IMPORT_ADDRESS_TABLE_SIZE
+};
+
+enum CHAMP_DIRECTORY
+{
+    DIR_VIRTUAL_ADDRESS,
+    DIR_SIZE
 };
 
 enum CHAMP_SECTION
@@ -26,19 +36,15 @@ enum CHAMP_SECTION
     SEC_CHARAC
 };
 
-typedef struct _EXPORTENTRY
-{
-    WORD Ordinal;
-    ULONG_PTR FunctionVA;
-    ULONG_PTR FunctionRVA;
-    CHAR FunctionName[256];
-} EXPORTENTRY, *PEXPORTENTRY;
-
 BOOL ValidateHeader(ULONG_PTR BaseAddress);
 PVOID ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp);
-PVOID GetSectionInfo(ULONG_PTR BaseAddress, DWORD dwAddr, DWORD dwChamp);
+PVOID GetSectionInfo(ULONG_PTR BaseAddress, ULONG_PTR dwAddr, DWORD dwChamp);
 PVOID GetSectionInfo(ULONG_PTR BaseAddress, const char *Name, DWORD dwChamp);
 DWORD RVA2Offset(ULONG_PTR BaseAddress, DWORD dwVA);
-std::list<EXPORTENTRY> GetExport(ULONG_PTR BaseAddress);
+std::list<PEXPORTENTRY> GetExportList(ULONG_PTR BaseAddress);
+PEXPORTENTRY GetExport(PMODULE Module, ULONG_PTR BaseAddress);
+VOID AddPESection(ULONG_PTR ImageBase, LPCSTR Name, DWORD PtrRawData, DWORD VirtualSize, DWORD VA, DWORD SizeSection, DWORD Characteristics = 0xE0000060);
+BOOL EditPE(ULONG_PTR BaseAddress, DWORD dwChamp, PVOID Value);
+VOID FixSectionSizeOffset(ULONG_PTR BaseAddress);
 
 #endif // __PESTUFF_H__

@@ -21,6 +21,7 @@
         DbgMsg("0x%08X\t%s\t%s\n", (DWORD)(Address & 0xFFFFFFFF), Mnemonic, Op_str);
 #endif
 
+VOID DisasOne(PBYTE bCode, ULONG_PTR dwAddr, LPCSTR Modname);
 VOID DisasAt(PBYTE bCode, DWORD dwSize, ULONG_PTR dwAddr, LPCSTR Modname = NULL);
 
 #endif // __DISAS_H__
