@@ -1,11 +1,4 @@
-#include <windows.h>
-#include <stdio.h>
-
-#include "modules.h"
-#include "dbg.h"
-#include "pestuff.h"
-#include "memory.h"
-#include "dump.h"
+#include "injected.h"
 
 int main(int argc, char *argv[])
 {

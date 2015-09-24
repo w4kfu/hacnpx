@@ -1,11 +1,7 @@
 #ifndef __BREAKPOINT_H__
 #define __BREAKPOINT_H__
 
-#include <windows.h>
-
-#include "dbg.h"
-#include "pestuff.h"
-#include "utils.h"
+#include "injected.h"
 
 typedef struct _BPINFO
 {

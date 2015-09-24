@@ -1,10 +1,7 @@
 #ifndef __HOOKSTUFF_H__
 #define __HOOKSTUFF_H__
 
-#include <windows.h>
-#include <Dbghelp.h>
-
-#include "dbg.h"
+#include "injected.h"
 
 #if _WIN64
     #define LDE_X86 64
@@ -53,5 +50,15 @@ BOOL SetupIATHook(ULONG_PTR BaseAddress, LPCSTR ModName, LPCSTR ProcName, PROC p
 BOOL ReplaceIATEntryInMod(ULONG_PTR BaseAddress, LPCSTR ModName, PROC pfnCurrent, PROC pfnNew);
 BOOL SetupInlineHook(LPCSTR ModName, LPCSTR ProcName, PROC pfnNew);
 BOOL SetupInlineHook(ULONG_PTR Addr, PROC pfnNew);
+VOID SetupPreMadeHookVirtualProtect(VOID);
+VOID SetupPreMadeHookSocket(VOID);
+VOID SetupPreMadeHookRecv(VOID);
+VOID SetupPreMadeHookSend(VOID);
+VOID SetupPreMadeHookSendto(VOID);
+VOID SetupPreMadeHookConnect(VOID);
+VOID SetupPreMadeHookWSASend(VOID);
+VOID SetupPreMadeHookWSASendTo(VOID);
+VOID SetupPreMadeHookWSAConnect(VOID);
+
 
 #endif // __HOOKSTUFF_H__

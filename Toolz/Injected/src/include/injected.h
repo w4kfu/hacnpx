@@ -1,10 +1,18 @@
 #ifndef __INJECTED_H__
 #define __INJECTED_H__
 
+#include <Winsock2.h>
 #include <windows.h>
-#include <tlhelp32.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <Dbghelp.h>
+#include <TlHelp32.h>
 
 #include <list>
+#include <map>
+
+#include "capstone/capstone.h"
 
 typedef struct _EXPORTENTRY {
     WORD Ordinal;
@@ -12,6 +20,7 @@ typedef struct _EXPORTENTRY {
     ULONG_PTR FunctionRVA;
     CHAR FunctionName[256];
     ULONG_PTR RVA;
+    BOOL isRedirect;
 } EXPORTENTRY, *PEXPORTENTRY;
 
 typedef struct _MODULE {

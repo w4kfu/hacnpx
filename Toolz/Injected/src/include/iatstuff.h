@@ -1,8 +1,6 @@
 #ifndef __IATSTUFF_H__
 #define __IATSTUFF_H__
 
-#include <windows.h>
-
 #include "injected.h"
 
 #ifdef _WIN64
@@ -25,5 +23,10 @@ VOID AddNewModuleApi(PIMPORTER Importer, PMODULE Module, PEXPORTENTRY Export, UL
 VOID ComputeAllITSize(PIMPORTER Importer);
 
 VOID BuildIT(PBYTE pDump, ULONG_PTR RVAIT);
+
+/* TODO UPDATE FUNCTIONS */
+BOOL SearchBinaryAllCall(ULONG_PTR BaseAddress, ULONG_PTR OEP);
+VOID LookIndirectCallImport(PBYTE pActual);
+VOID LookDirectCallImport(PBYTE pActual);
 
 #endif // __IATSTUFF_H__

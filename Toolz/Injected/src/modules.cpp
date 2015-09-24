@@ -30,14 +30,18 @@ PVOID GetModuleInfo(ULONG_PTR Addr, DWORD dwChamp)
         CloseHandle(hModuleSnap);
         return NULL;
     }
-    if (Addr >= (ULONG_PTR)me.modBaseAddr || Addr <= (ULONG_PTR)(me.modBaseAddr + me.modBaseSize)) {
-        switch(dwChamp) {
-            case MOD_BASE:
-                return (PVOID)me.modBaseAddr;
-            case MOD_SIZE:
-                return (PVOID)me.modBaseSize;
+    do
+    {
+        if ((Addr >= (ULONG_PTR)me.modBaseAddr) && (Addr < (ULONG_PTR)(me.modBaseAddr + me.modBaseSize))) {
+            switch (dwChamp) {
+                case MOD_BASE:
+                    return (PVOID)me.modBaseAddr;
+                case MOD_SIZE:
+                    return (PVOID)me.modBaseSize;
+            }
         }
-    }
+    } while (Module32Next(hModuleSnap, &me));
+    DbgMsg("[+] GetModuleInfo failed : "HEX_FORMAT"\n", Addr);
     return NULL;
 }
 
@@ -61,6 +65,8 @@ std::list<PMODULE> GetModuleList(VOID)
     }
     do
     {
+        if (me.modBaseAddr == (PBYTE)GetModuleHandleA(NULL))
+            continue;
         mo = new MODULE();
         if (mo == NULL) {
             DbgMsg("[-] GetModuleList - malloc failed\n");
@@ -77,16 +83,36 @@ std::list<PMODULE> GetModuleList(VOID)
         memcpy(mo->szModule, me.szModule, sizeof (me.szModule));
         _strlwr_s(mo->szModule, sizeof (mo->szModule) - 1);
         memcpy(mo->szExePath, me.szExePath, sizeof (me.szExePath));
+        DbgMsg("[+] Working on %s\n", mo->szModule);
         mo->lExport = GetExportList((ULONG_PTR)mo->modBaseAddr);
         lModule.push_back(mo);
     } while (Module32Next(hModuleSnap, &me));
     return lModule;
 }
 
+PMODULE GetModuleRedirect(ULONG_PTR Addr)
+{
+    std::list<PMODULE>::const_iterator it_mod;
+    std::list<PEXPORTENTRY>::const_iterator it_exp;
+
+    for (it_mod = pinfo.lModule.begin(); it_mod != pinfo.lModule.end(); ++it_mod) {
+        for (it_exp = (*it_mod)->lExport.begin(); it_exp != (*it_mod)->lExport.end(); ++it_exp) {
+            if ((*it_exp)->isRedirect == TRUE && (*it_exp)->FunctionVA == Addr) {
+                return (*it_mod);
+            }
+        }
+    }
+    return NULL;
+}
+
 PMODULE GetModule(ULONG_PTR Addr)
 {
     std::list<PMODULE>::const_iterator it;
+    PMODULE Module;
 
+    Module = GetModuleRedirect(Addr);
+    if (Module != NULL)
+        return Module;
     for (it = pinfo.lModule.begin(); it != pinfo.lModule.end(); ++it) {
         if (Addr >= (ULONG_PTR)((*it)->modBaseAddr) && Addr <= (ULONG_PTR)((*it)->modBaseAddr + (*it)->modBaseSize)) {
             return (*it);

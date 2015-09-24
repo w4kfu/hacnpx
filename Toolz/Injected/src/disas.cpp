@@ -45,15 +45,15 @@ VOID DisasAt(PBYTE bCode, DWORD dwSize, ULONG_PTR dwAddr, LPCSTR Modname)
     if (count > 0) {
         for (j = 0; j < count; j++) {
             PrintInstru(Modname, insn[j].address, insn[j].mnemonic, insn[j].op_str);
-            //if (Modname)
-            //    DbgMsg("%s:0x%016llX:\t%s\t%s\n", Modname, insn[j].address, insn[j].mnemonic, insn[j].op_str);
-            //else
-            //    DbgMsg("0x%016llX:\t%s\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str);
+            /* if (Modname)
+                DbgMsg("%s:0x%016llX:\t%s\t%s\n", Modname, insn[j].address, insn[j].mnemonic, insn[j].op_str);
+            else
+                DbgMsg("0x%016llX:\t%s\t%s\n", insn[j].address, insn[j].mnemonic, insn[j].op_str); */
         }
-        //if (Modname)
-        //    DbgMsg("%s:0x%016llX:\n", Modname, insn[j - 1].address + insn[j - 1].size);
-        //else
-        //    DbgMsg("0x%016llX:\n", insn[j - 1].address + insn[j - 1].size);
+        /* if (Modname)
+            DbgMsg("%s:0x%016llX:\n", Modname, insn[j - 1].address + insn[j - 1].size);
+        else
+            DbgMsg("0x%016llX:\n", insn[j - 1].address + insn[j - 1].size); */
         cs_free(insn, count);
     }
     else

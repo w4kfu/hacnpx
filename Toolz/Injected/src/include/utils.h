@@ -1,10 +1,7 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
-#include <windows.h>
-
-#include "dbg.h"
-#include "pestuff.h"
+#include "injected.h"
 
 typedef struct _PE_INFO {
     ULONG_PTR ModuleBase;
@@ -30,8 +27,32 @@ typedef struct _PE_INFO {
 #define GET_RETURN_ADDR(pRegs) (*(DWORD*)(pRegs->Esp))
 #endif
 
+#if _WIN64
+#define GET_ARG_1(pRegs) (*(DWORD64*)(pRegs->Rcx))
+#else
+#define GET_ARG_1(pRegs) (*(DWORD*)(pRegs->Esp + 4))
+#endif
+
+#if _WIN64
+#define GET_ARG_2(pRegs) (*(DWORD64*)(pRegs->Rdx))
+#else
+#define GET_ARG_2(pRegs) (*(DWORD*)(pRegs->Esp + 8))
+#endif
+
+#if _WIN64
+#define GET_ARG_3(pRegs) (*(DWORD64*)(pRegs->R8))
+#else
+#define GET_ARG_3(pRegs) (*(DWORD*)(pRegs->Esp + 0x0C))
+#endif
+
+#if _WIN64
+#define GET_ARG_4(pRegs) (*(DWORD64*)(pRegs->R9))
+#else
+#define GET_ARG_4(pRegs) (*(DWORD*)(pRegs->Esp + 0x10))
+#endif
+
 VOID FillPeInfo(VOID);
-VOID PrintPeInfo(VOID);
 BOOL IsWindows8orLater(void);
+BOOL CheckIfTwiceFreq(std::map<ULONG_PTR, int> &ModuleBaseMap, int max);
 
 #endif // __UTILS_H__

@@ -1,15 +1,18 @@
 #include "pestuff.h"
 
+extern PE_INFO pinfo;
+
 BOOL ValidateHeader(ULONG_PTR BaseAddress)
 {
     PIMAGE_DOS_HEADER pDos;
-    ULONG_PTR SizeOfImage;
+    /* ULONG_PTR SizeOfImage; */
     PIMAGE_NT_HEADERS pNT;
 
     pDos = (PIMAGE_DOS_HEADER)BaseAddress;
     if (pDos->e_magic != 0x5A4D) {
         return FALSE;
     }
+    /*
     SizeOfImage = (ULONG_PTR)GetModuleInfo(BaseAddress, MOD_SIZE);
     if (SizeOfImage == 0) {
         return FALSE;
@@ -17,11 +20,38 @@ BOOL ValidateHeader(ULONG_PTR BaseAddress)
     if (pDos->e_lfanew + sizeof (IMAGE_DOS_HEADER) + sizeof (IMAGE_NT_HEADERS) >= SizeOfImage) {
         return FALSE;
     }
+    */
     pNT = (PIMAGE_NT_HEADERS)(BaseAddress + pDos->e_lfanew);
     if (pNT->Signature != 0x4550) {
         return FALSE;
     }
     return TRUE;
+}
+
+PVOID ParsePEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index)
+{
+    PIMAGE_DOS_HEADER pDos;
+    PIMAGE_NT_HEADERS pNT;
+    PIMAGE_DATA_DIRECTORY rvas;
+    DWORD nmbOfRva;
+
+    if (ValidateHeader(BaseAddress) == FALSE) {
+        return 0;
+    }
+    pDos = (PIMAGE_DOS_HEADER)BaseAddress;
+    pNT = (PIMAGE_NT_HEADERS)(BaseAddress + pDos->e_lfanew);
+    nmbOfRva = pNT->OptionalHeader.NumberOfRvaAndSizes;
+    rvas = (PIMAGE_DATA_DIRECTORY)&pNT->OptionalHeader.DataDirectory;
+    if (nmbOfRva < (Index + 1)) {
+        return 0;
+    }
+    switch(dwChamp) {
+        case DIR_VIRTUAL_ADDRESS:
+            return (PVOID)rvas[Index].VirtualAddress;
+        case DIR_SIZE:
+            return (PVOID)rvas[Index].Size;
+    }
+    return 0;
 }
 
 PVOID ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp)
@@ -45,16 +75,18 @@ PVOID ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp)
             return (PVOID)(DWORD)pNT->FileHeader.NumberOfSections;
         case PE_SECTIONS:
             return (PVOID)IMAGE_FIRST_SECTION(pNT);//(void*)((BYTE *)pNT + sizeof(IMAGE_NT_HEADERS64));
+        case IMPORT_TABLE:
+            return ParsePEDirectory(BaseAddress, DIR_VIRTUAL_ADDRESS, IMAGE_DIRECTORY_ENTRY_IMPORT);
+        case IMPORT_TABLE_SIZE:
+            return ParsePEDirectory(BaseAddress, DIR_SIZE, IMAGE_DIRECTORY_ENTRY_IMPORT);
+        case IMPORT_ADDRESS_TABLE:
+            return ParsePEDirectory(BaseAddress, DIR_VIRTUAL_ADDRESS, IMAGE_DIRECTORY_ENTRY_IAT);
+        case IMPORT_ADDRESS_TABLE_SIZE:
+            return ParsePEDirectory(BaseAddress, DIR_SIZE, IMAGE_DIRECTORY_ENTRY_IAT);
         case EXPORT_TABLE:
-            if (nmbOfRva >= 1)
-                return (PVOID)(rvas[0].VirtualAddress);
-            else
-                return NULL;
+            return ParsePEDirectory(BaseAddress, DIR_VIRTUAL_ADDRESS, IMAGE_DIRECTORY_ENTRY_EXPORT);
         case EXPORT_TABLE_SIZE:
-            if (nmbOfRva >= 1)
-                return (PVOID)(rvas[0].Size);
-            else
-                return NULL;
+            return ParsePEDirectory(BaseAddress, DIR_SIZE, IMAGE_DIRECTORY_ENTRY_EXPORT);
         case ENTRY_POINT:
             return (PVOID)pNT->OptionalHeader.AddressOfEntryPoint;
     }
@@ -145,6 +177,56 @@ DWORD RVA2Offset(ULONG_PTR BaseAddress, DWORD dwVA)
     return ((dwVA - VirtualAddress) + PointerToRawData);
 }
 
+BOOL IsAddressInDirectory(ULONG_PTR BaseAddress, DWORD Index, DWORD Addr)
+{
+    DWORD DirectoryStart;
+    DWORD DirectorySize;
+
+    DirectoryStart = (DWORD)ParsePEDirectory(BaseAddress, DIR_VIRTUAL_ADDRESS, Index);
+    DirectorySize = (DWORD)ParsePEDirectory(BaseAddress, DIR_SIZE, Index);
+    if (Addr >= DirectoryStart && Addr < (DirectoryStart + DirectorySize)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+ULONG_PTR ResolveRedirect(LPCSTR ApiRedir)
+{
+    LPCSTR ApiName = NULL;
+    TCHAR szModule[MAX_MODULE_NAME32 + 1];
+    HMODULE BaseAddress = NULL;
+    ULONG_PTR FunctionVA = 0;
+
+    if (strncmp(ApiRedir, "ext-", 4) == 0) {
+        /* DbgMsg("[-] ResolveRedirect - %s : Unhandled redirection of type 'ext-'\n", ApiRedir); */
+        ExitProcess(42);
+    }
+    if (strncmp(ApiRedir, "api-", 4) == 0) {
+        /* DbgMsg("[-] ResolveRedirect - %s : Unhandled redirection of type 'api-'\n", ApiRedir); */
+        return 0;
+    }
+    ApiName = strchr(ApiRedir, '.');
+    if (ApiName == NULL) {
+        /* DbgMsg("[-] ResolveRedirect - Can't find separator '.' in \"%s\"\n", ApiRedir); */
+        ExitProcess(42);
+    }
+    memset(szModule, 0, sizeof (szModule));
+    memcpy(szModule, ApiRedir, ApiName - ApiRedir);
+    ApiName += 1;
+    /* DbgMsg("[+] Real : %s!%s\n", szModule, ApiName); */
+    BaseAddress = GetModuleHandleA(szModule);
+    if (BaseAddress == NULL) {
+        /* DbgMsg("[-] ResolveRedirect - GetModuleHandleA failed %lu\n", GetLastError()); */
+        return 0;
+    }
+    FunctionVA = (ULONG_PTR)GetProcAddress(BaseAddress, ApiName);
+    if (FunctionVA == NULL) {
+        /* DbgMsg("[-] ResolveRedirect - GetProcAddress failed %lu\n", GetLastError()); */
+        return 0;
+    }
+    return FunctionVA;
+}
+
 std::list<PEXPORTENTRY> GetExportList(ULONG_PTR BaseAddress)
 {
     PIMAGE_DOS_HEADER pDos;
@@ -152,10 +234,12 @@ std::list<PEXPORTENTRY> GetExportList(ULONG_PTR BaseAddress)
     PIMAGE_EXPORT_DIRECTORY pExport;
     WORD NameOrdinal;
     ULONG_PTR FunctionRVA;
+    //ULONG_PTR FunctionVA;
     PEXPORTENTRY Export;
     std::list<PEXPORTENTRY> lExport;
 
     if (ValidateHeader(BaseAddress) == FALSE) {
+        DbgMsg("[-] GetExportList - ValidateHeader failed\n");
         return lExport;
     }
     pDos = (PIMAGE_DOS_HEADER)BaseAddress;
@@ -174,9 +258,18 @@ std::list<PEXPORTENTRY> GetExportList(ULONG_PTR BaseAddress)
             DbgMsg("[-] GetModuleList - malloc failed\n");
             ExitProcess(42);
         }
+        Export->isRedirect = FALSE;
+        //if (IsAddressInDirectory(BaseAddress, EXPORT_TABLE, (DWORD)FunctionRVA) == TRUE) {
+        //    if ((FunctionVA = ResolveRedirect((LPCSTR)(FunctionRVA + BaseAddress))) != 0) {
+        //        Export->isRedirect = TRUE;
+        //        Export->FunctionVA = FunctionVA;
+        //    }
+        //    //ExitProcess(42);
+        //}
         Export->Ordinal = NameOrdinal;
         Export->FunctionRVA = FunctionRVA;
-        Export->FunctionVA = FunctionRVA + BaseAddress;
+        if (Export->isRedirect == FALSE)
+            Export->FunctionVA = FunctionRVA + BaseAddress;
         memset(Export->FunctionName, 0, 256);
         if (index >= pExport->NumberOfNames)
             sprintf_s(Export->FunctionName, 256, "Ordinal_0x%08X", NameOrdinal);
@@ -224,9 +317,9 @@ BOOL EditPEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index, PVOID Va
     PIMAGE_DATA_DIRECTORY rvas;
     DWORD nmbOfRva;
 
-    if (ValidateHeader(BaseAddress) == FALSE) {
+    /* if (ValidateHeader(BaseAddress) == FALSE) {
         return FALSE;
-    }
+    } */
     pDos = (PIMAGE_DOS_HEADER)BaseAddress;
     pNT = (PIMAGE_NT_HEADERS)(BaseAddress + pDos->e_lfanew);
     nmbOfRva = pNT->OptionalHeader.NumberOfRvaAndSizes;
@@ -250,9 +343,10 @@ BOOL EditPE(ULONG_PTR BaseAddress, DWORD dwChamp, PVOID Value)
     PIMAGE_DOS_HEADER pDos;
     PIMAGE_NT_HEADERS pNT;
 
-    if (ValidateHeader(BaseAddress) == FALSE) {
+    /* if (ValidateHeader(BaseAddress) == FALSE) {
+        DbgMsg("[-] EditPE - ValidateHeader failed\n");
         return FALSE;
-    }
+    } */
     pDos = (PIMAGE_DOS_HEADER)BaseAddress;
     pNT = (PIMAGE_NT_HEADERS)(BaseAddress + pDos->e_lfanew);
     switch(dwChamp) {
@@ -290,4 +384,18 @@ VOID FixSectionSizeOffset(ULONG_PTR BaseAddress)
         pSection[i].PointerToRawData = pSection[i].VirtualAddress;
         pSection[i].SizeOfRawData = pSection[i].Misc.VirtualSize;
     }
+}
+
+BOOL IsAnExport(ULONG_PTR Addr)
+{
+    std::list<PMODULE>::const_iterator it_mod;
+    std::list<PEXPORTENTRY>::const_iterator it_exp;
+
+    for (it_mod = pinfo.lModule.begin(); it_mod != pinfo.lModule.end(); ++it_mod) {
+        for (it_exp = (*it_mod)->lExport.begin(); it_exp != (*it_mod)->lExport.end(); ++it_exp) {
+            if ((*it_exp)->FunctionVA == Addr)
+                return TRUE;
+        }
+    }
+    return FALSE;
 }

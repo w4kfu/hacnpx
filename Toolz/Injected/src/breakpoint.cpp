@@ -110,9 +110,9 @@ VOID GuardUntilExecSection(const char *Name, PVECTORED_EXCEPTION_HANDLER Vectore
 
     ModuleBase = (ULONG_PTR)GetModuleHandleA(NULL);
     dwSectionBase = (DWORD)GetSectionInfo(ModuleBase, Name, SEC_VIRT_ADDR);
-    dwSectionSize = (DWORD)GetSectionInfo(ModuleBase, Name, SEC_RAW_SIZE /* SEC_VIRT_SIZE */);
+    dwSectionSize = (DWORD)GetSectionInfo(ModuleBase, Name, SEC_VIRT_SIZE /* SEC_RAW_SIZE */);
     if (dwSectionBase == 0 || dwSectionSize == 0) {
-        DbgMsg("[-] GuardUntilExecSection- GetSectionInfo (%s) failed\n", Name);
+        DbgMsg("[-] GuardUntilExecSection- GetSectionInfo (%s) failed : dwSectionBase = 0x%08X ; dwSectionSize = 0x%08X\n", Name, dwSectionBase, dwSectionSize);
         return;
     }
     GuardInfo.StartAddr = ModuleBase + dwSectionBase;

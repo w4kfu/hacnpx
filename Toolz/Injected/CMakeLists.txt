@@ -34,7 +34,7 @@ foreach(lang C CXX)
     endif ("${CMAKE_${lang}_FLAGS}" MATCHES "/W[1-3]")
 endforeach(lang)
 msvc_link_to_static_crt()
-SET(LINK_LIBS ${LINK_LIBS} Dbghelp.lib)
+SET(LINK_LIBS ${LINK_LIBS} Dbghelp.lib Ws2_32.lib)
 
 if (${CMAKE_SIZEOF_VOID_P} EQUAL 8)
     SET(LINK_LIBS ${LINK_LIBS} ${PROJECT_SOURCE_DIR}/lib/LDE64x64.lib)

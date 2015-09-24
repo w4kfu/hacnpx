@@ -1,5 +1,7 @@
 #include "hookstuff.h"
 
+extern PE_INFO pinfo;
+
 #ifdef _WIN64
 BYTE GenericTrampo[] =  "\x54"                                      // push    rsp
                         "\x50"                                      // push    rax
@@ -175,11 +177,232 @@ BOOL SetupInlineHook(ULONG_PTR Addr, PROC pfnNew)
     *(PBYTE)Addr = 0xE9;
     *(PDWORD)((PBYTE)Addr + 1) = (BYTE*)Trampo - (BYTE*)Addr - 5;
 #endif
-    VirtualProtect((LPVOID)Addr, dwLen, dwOldProt, &dwOldProt);
     *(ULONG_PTR*)((ULONG_PTR)Trampo + sizeof (GenericTrampo) - sizeof (ULONG_PTR) - 1) = (ULONG_PTR)Addr + dwLen;
     *(ULONG_PTR*)((ULONG_PTR)Trampo + sizeof (GenericTrampo) - (sizeof (ULONG_PTR) * 2) - 1) = (ULONG_PTR)pfnNew;
     #ifndef _WIN64
         *(ULONG_PTR*)((ULONG_PTR)Trampo + sizeof (GenericTrampo) - (sizeof (ULONG_PTR) * 3) - 1) = (ULONG_PTR)Trampo + (ULONG_PTR)sizeof (GenericTrampo) - 1 - sizeof (ULONG_PTR);
     #endif
+    VirtualProtect((LPVOID)Addr, dwLen, dwOldProt, &dwOldProt);
     return TRUE;
+}
+
+/* kernel32.dll!VirtualProtect */
+
+VOID PreMadeHookVirtualProtect(PPUSHED_REGS pRegs)
+{
+    ULONG_PTR RetAddr;
+
+    RetAddr = GET_RETURN_ADDR(pRegs);
+    if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
+        return;
+    DbgMsg("[+] VirtualProtect("HEX_FORMAT", 0x%08X, 0x%08X, 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
+}
+
+VOID SetupPreMadeHookVirtualProtect(VOID)
+{
+    if (SetupInlineHook("kernel32.dll", "VirtualProtect", (PROC)PreMadeHookVirtualProtect) == FALSE) {
+        DbgMsg("[-] SetupPreMadeHookVirtualProtect - SetupInlineHook failed!\n");
+    }
+}
+
+/* Ws2_32.dll!socket */
+
+VOID PreMadeHookSocket(PPUSHED_REGS pRegs)
+{
+    ULONG_PTR RetAddr;
+
+    RetAddr = GET_RETURN_ADDR(pRegs);
+    if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
+        return;
+    DbgMsg("[+] socket(0x%08X, 0x%08X, 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), RetAddr);
+}
+
+VOID SetupPreMadeHookSocket(VOID)
+{
+    if (LoadLibraryA("Ws2_32.dll") == NULL) {
+        DbgMsg("[-] SetupPreMadeHookSocket - LoadLibraryA failed : %lu\n", GetLastError());
+        return;
+    }
+    if (SetupInlineHook("Ws2_32.dll", "socket", (PROC)PreMadeHookSocket) == FALSE) {
+        DbgMsg("[-] SetupPreMadeHookSocket - SetupInlineHook failed!\n");
+    }
+}
+
+/* Ws2_32.dll!recv */
+
+VOID PreMadeHookRecv(PPUSHED_REGS pRegs)
+{
+    ULONG_PTR RetAddr;
+
+    RetAddr = GET_RETURN_ADDR(pRegs);
+    if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
+        return;
+    DbgMsg("[+] recv(0x%08X, "HEX_FORMAT", 0x%08X, 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
+}
+
+VOID SetupPreMadeHookRecv(VOID)
+{
+    if (LoadLibraryA("Ws2_32.dll") == NULL) {
+        DbgMsg("[-] SetupPreMadeHookRecv - LoadLibraryA failed : %lu\n", GetLastError());
+        return;
+    }
+    if (SetupInlineHook("Ws2_32.dll", "recv", (PROC)PreMadeHookRecv) == FALSE) {
+        DbgMsg("[-] SetupPreMadeHookRecv - SetupInlineHook failed!\n");
+    }
+}
+
+/* Ws2_32.dll!send */
+
+VOID PreMadeHookSend(PPUSHED_REGS pRegs)
+{
+    ULONG_PTR RetAddr;
+
+    RetAddr = GET_RETURN_ADDR(pRegs);
+    if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
+        return;
+    DbgMsg("[+] send(0x%08X, "HEX_FORMAT", 0x%08X, 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
+}
+
+VOID SetupPreMadeHookSend(VOID)
+{
+    if (LoadLibraryA("Ws2_32.dll") == NULL) {
+        DbgMsg("[-] SetupPreMadeHookSend - LoadLibraryA failed : %lu\n", GetLastError());
+        return;
+    }
+    if (SetupInlineHook("Ws2_32.dll", "send", (PROC)PreMadeHookSend) == FALSE) {
+        DbgMsg("[-] SetupPreMadeHookSend - SetupInlineHook failed!\n");
+    }
+}
+
+/* Ws2_32.dll!sendto */
+
+VOID PreMadeHookSendto(PPUSHED_REGS pRegs)
+{
+    ULONG_PTR RetAddr;
+
+    RetAddr = GET_RETURN_ADDR(pRegs);
+    if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
+        return;
+    DbgMsg("[+] sendto(0x%08X, "HEX_FORMAT", 0x%08X, 0x%08X, ...); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
+    HexDump((PVOID)GET_ARG_2(pRegs), GET_ARG_3(pRegs) < 0x100 ? GET_ARG_3(pRegs) : 0x100); 
+}
+
+VOID SetupPreMadeHookSendto(VOID)
+{
+    if (LoadLibraryA("Ws2_32.dll") == NULL) {
+        DbgMsg("[-] SetupPreMadeHookSendto - LoadLibraryA failed : %lu\n", GetLastError());
+        return;
+    }
+    if (SetupInlineHook("Ws2_32.dll", "sendto", (PROC)PreMadeHookSendto) == FALSE) {
+        DbgMsg("[-] SetupPreMadeHookSendto - SetupInlineHook failed!\n");
+    }
+}
+
+/* Ws2_32.dll!connect */
+
+VOID PreMadeHookConnect(PPUSHED_REGS pRegs)
+{
+    ULONG_PTR RetAddr;
+
+    RetAddr = GET_RETURN_ADDR(pRegs);
+    if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
+        return;
+    DbgMsg("[+] connect(0x%08X, "HEX_FORMAT", 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), RetAddr);
+}
+
+VOID SetupPreMadeHookConnect(VOID)
+{
+    if (LoadLibraryA("Ws2_32.dll") == NULL) {
+        DbgMsg("[-] SetupPreMadeHookConnect - LoadLibraryA failed : %lu\n", GetLastError());
+        return;
+    }
+    if (SetupInlineHook("Ws2_32.dll", "connect", (PROC)PreMadeHookConnect) == FALSE) {
+        DbgMsg("[-] SetupPreMadeHookConnect - SetupInlineHook failed!\n");
+    }
+}
+
+/* Ws2_32.dll!WSAConnect */
+
+VOID PreMadeHookWSAConnect(PPUSHED_REGS pRegs)
+{
+    ULONG_PTR RetAddr;
+
+    RetAddr = GET_RETURN_ADDR(pRegs);
+    if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
+        return;
+    DbgMsg("[+] WSAConnect(...); => "HEX_FORMAT"\n", RetAddr);
+}
+
+VOID SetupPreMadeHookWSAConnect(VOID)
+{
+    if (LoadLibraryA("Ws2_32.dll") == NULL) {
+        DbgMsg("[-] SetupPreMadeHookWSAConnect - LoadLibraryA failed : %lu\n", GetLastError());
+        return;
+    }
+    if (SetupInlineHook("Ws2_32.dll", "WSAConnect", (PROC)PreMadeHookWSAConnect) == FALSE) {
+        DbgMsg("[-] SetupPreMadeHookWSAConnect - SetupInlineHook failed!\n");
+    }
+}
+
+/* Ws2_32.dll!WSASend */
+
+VOID PreMadeHookWSASend(PPUSHED_REGS pRegs)
+{
+    ULONG_PTR RetAddr;
+    LPWSABUF lpBuffers;
+    DWORD dwBufferCount;
+
+    RetAddr = GET_RETURN_ADDR(pRegs);
+    if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
+        return;
+    lpBuffers = (LPWSABUF)GET_ARG_2(pRegs);
+    dwBufferCount = (DWORD)GET_ARG_3(pRegs);
+    if (dwBufferCount > 1) {
+        DbgMsg("[-] PreMadeHookWSASend - dwBufferCount > 1\n");
+    }
+    DbgMsg("[+] WSASend("HEX_FORMAT", 0x%08X); => "HEX_FORMAT"\n", lpBuffers[0].buf, lpBuffers[0].len, RetAddr);
+    HexDump(lpBuffers[0].buf, lpBuffers[0].len < 0x100 ? lpBuffers[0].len : 0x100); 
+}
+
+VOID SetupPreMadeHookWSASend(VOID)
+{
+    if (LoadLibraryA("Ws2_32.dll") == NULL) {
+        DbgMsg("[-] SetupPreMadeHookWSASend - LoadLibraryA failed : %lu\n", GetLastError());
+        return;
+    }
+    if (SetupInlineHook("Ws2_32.dll", "WSASend", (PROC)PreMadeHookWSASend) == FALSE) {
+        DbgMsg("[-] SetupPreMadeHookWSASend - SetupInlineHook failed!\n");
+    }
+}
+
+/* Ws2_32.dll!WSASendTo */
+
+VOID PreMadeHookWSASendTo(PPUSHED_REGS pRegs)
+{
+    ULONG_PTR RetAddr;
+    LPWSABUF lpBuffers;
+    DWORD dwBufferCount;
+
+    RetAddr = GET_RETURN_ADDR(pRegs);
+    if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
+        return;
+    lpBuffers = (LPWSABUF)GET_ARG_2(pRegs);
+    dwBufferCount = (DWORD)GET_ARG_3(pRegs);
+    if (dwBufferCount > 1) {
+        DbgMsg("[-] PreMadeHookWSASend - dwBufferCount > 1\n");
+    }
+    DbgMsg("[+] WSASendTo("HEX_FORMAT", 0x%08X); => "HEX_FORMAT"\n", lpBuffers[0].buf, lpBuffers[0].len, RetAddr);
+    HexDump(lpBuffers[0].buf, lpBuffers[0].len < 0x100 ? lpBuffers[0].len : 0x100); 
+}
+
+
+VOID SetupPreMadeHookWSASendTo(VOID)
+{
+    if (LoadLibraryA("Ws2_32.dll") == NULL) {
+        DbgMsg("[-] SetupPreMadeHookWSASendTo - LoadLibraryA failed : %lu\n", GetLastError());
+        return;
+    }
+    if (SetupInlineHook("Ws2_32.dll", "WSASendTo", (PROC)PreMadeHookWSASendTo) == FALSE) {
+        DbgMsg("[-] SetupPreMadeHookWSASendTo - SetupInlineHook failed!\n");
+    }
 }

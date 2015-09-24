@@ -64,11 +64,7 @@ VOID FixPEHeader(ULONG_PTR ImageBase)
     pNT->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].Size = 0;
     //pNT->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress = 0;
     //pNT->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size = 0;
-    //pNT->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
-    for (WORD i = 0; i < pNT->FileHeader.NumberOfSections; i++ ) {
-        pSection[i].PointerToRawData = pSection[i].VirtualAddress;
-        pSection[i].SizeOfRawData = pSection[i].Misc.VirtualSize;
-    }
+    pNT->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
 }
 
 BOOL DumpPE(ULONG_PTR ImageBase, LPCSTR dumpFileName, ULONG_PTR dwEntryPoint, BOOL ImportRec)
@@ -80,7 +76,7 @@ BOOL DumpPE(ULONG_PTR ImageBase, LPCSTR dumpFileName, ULONG_PTR dwEntryPoint, BO
         return FALSE;
     }
     FixSectionSizeOffset((ULONG_PTR)pDump);
-    //FixPEHeader((ULONG_PTR)pDump);
+    FixPEHeader((ULONG_PTR)pDump);
     if (dwEntryPoint) {
         EditPE((ULONG_PTR)pDump, ENTRY_POINT, (PVOID)dwEntryPoint);
     }

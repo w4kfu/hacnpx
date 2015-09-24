@@ -1,7 +1,7 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 
-#include <windows.h>
+#include "injected.h"
 
 BOOL IsBadReadMemory(PVOID ptr, DWORD size);
 

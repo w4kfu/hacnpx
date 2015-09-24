@@ -1,12 +1,7 @@
 #ifndef __DBG_H__
 #define __DBG_H__
 
-#include <windows.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "pestuff.h"
-#include "utils.h"
+#include "injected.h"
 
 #define FILE_DBG "dbg_msg.txt"
 
@@ -17,7 +12,7 @@
 #endif
 
 VOID MakeConsole(VOID);
-VOID HexDump(PVOID *data, SSIZE_T size);
+VOID HexDump(PVOID data, SSIZE_T size);
 VOID DbgMsg(LPCSTR szFormat, ...);
 VOID PrintExportEntry(std::list<PEXPORTENTRY> lExport);
 VOID PrintPeInfo(VOID);

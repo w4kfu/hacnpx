@@ -55,7 +55,7 @@ VOID DbgMsg(const char* szFormat, ...)
     printf("%s", cpBuffer);
 }
 
-VOID HexDump(PVOID *data, SSIZE_T size)
+VOID HexDump(PVOID data, SSIZE_T size)
 {
     unsigned char *p = (unsigned char*)data;
     unsigned char c;
@@ -122,6 +122,11 @@ VOID PrintModuleInfo(VOID)
     for (it = pinfo.lModule.begin(); it != pinfo.lModule.end(); ++it) {
         DbgMsg("%-30s "HEX_FORMAT" 0x%08X %d\n", (*it)->szModule, (*it)->modBaseAddr, (*it)->modBaseSize, (*it)->lExport.size());
     }
+#if _WIN64
+    DbgMsg("============================== ================== ========== =========\n");
+#else
+    DbgMsg("============================== ========== ========== =========\n");
+#endif
 }
 
 VOID PrintPeInfo(VOID)

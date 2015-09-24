@@ -1,10 +1,6 @@
 #ifndef __MODULES_H__
 #define __MODULES_H__
 
-#include <windows.h>
-#include <TlHelp32.h>
-#include <stdio.h>
-
 #include "injected.h"
 
 enum CHAMP_MODULE

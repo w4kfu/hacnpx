@@ -1,10 +1,7 @@
 #ifndef __PESTUFF_H__
 #define __PESTUFF_H__
 
-#include <windows.h>
-#include <list>
-
-#include "modules.h"
+#include "injected.h"
 
 enum CHAMP_PE
 {
@@ -46,5 +43,6 @@ PEXPORTENTRY GetExport(PMODULE Module, ULONG_PTR BaseAddress);
 VOID AddPESection(ULONG_PTR ImageBase, LPCSTR Name, DWORD PtrRawData, DWORD VirtualSize, DWORD VA, DWORD SizeSection, DWORD Characteristics = 0xE0000060);
 BOOL EditPE(ULONG_PTR BaseAddress, DWORD dwChamp, PVOID Value);
 VOID FixSectionSizeOffset(ULONG_PTR BaseAddress);
+BOOL IsAnExport(ULONG_PTR Addr);
 
 #endif // __PESTUFF_H__

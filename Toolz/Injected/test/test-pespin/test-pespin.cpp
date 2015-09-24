@@ -7,7 +7,6 @@ LONG CALLBACK CallBackNearOEP(PEXCEPTION_POINTERS ExceptionInfo)
     DisasAt((PBYTE)GET_IP(ExceptionInfo), 0x40, GET_IP(ExceptionInfo));
     SearchAutoIAT((ULONG_PTR)GetModuleHandle(NULL), GET_IP(ExceptionInfo));
     DumpPE((ULONG_PTR)GetModuleHandle(NULL), "test_dumped.exe", (ULONG_PTR)GET_IP(ExceptionInfo) - (ULONG_PTR)GetModuleHandle(NULL), TRUE);
-    //DebugBreak();
     return EXCEPTION_CONTINUE_EXECUTION;
 }
 
