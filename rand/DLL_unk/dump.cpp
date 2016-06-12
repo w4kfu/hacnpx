@@ -140,7 +140,7 @@ BOOL dump(struct infodump *infodump)
 
 	dwCursor = 0;
 	dwALignedSize = AlignSize(pPE->OptionalHeader.SizeOfHeaders, pPE->OptionalHeader.FileAlignment);
-	dbg_msg("[+] Writting Header, dwAlignedSize = 0x%08X\n", dwALignedSize);
+	dbg_msg("[+] Writing Header, dwAlignedSize = 0x%08X\n", dwALignedSize);
 	WriteFile(hFile, pDump, pPE->OptionalHeader.SizeOfHeaders, &dwNbByteWritten, NULL);
 	for (int i = 0; i < (dwALignedSize - pPE->OptionalHeader.SizeOfHeaders); i++)
 	{
@@ -158,7 +158,7 @@ BOOL dump(struct infodump *infodump)
 		pSection[dwNbSection].VirtualAddress = dwVirtual;
 		pSection[dwNbSection].PointerToRawData = dwCursor;
 		pSection[dwNbSection].SizeOfRawData = dwALignedSize;
-		dbg_msg("[+] Writting section %s, dwAlignedSize = 0x%08X\n", pSection[i].Name, dwALignedSize);
+		dbg_msg("[+] Writing section %s, dwAlignedSize = 0x%08X\n", pSection[i].Name, dwALignedSize);
 		/* CHECK USELESS SECTION */
 		/*if (!strncmp(".tls", (char*)pSection[i].Name, 4))
 		{

@@ -295,7 +295,7 @@ int HandleMessage(char *pchRecvBuf, unsigned int len)
             }
             break;
         case k_EMsgServerPingResponse:
-            printf("[+] 0x%02X: MSG SERVER PING REPONSE\n", k_EMsgServerPingResponse);
+            printf("[+] 0x%02X: MSG SERVER PING RESPONSE\n", k_EMsgServerPingResponse);
             return 42;
             break;            
         default:

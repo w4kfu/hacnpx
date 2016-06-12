@@ -5,8 +5,8 @@
 
 #include "utils.h"
 
-HANDLE              hReceiveThread		= NULL;	// Recieve flag
-DWORD               idReceiveThread		= 0;	// The id of the recieve thread
+HANDLE              hReceiveThread		= NULL;	// Receive flag
+DWORD               idReceiveThread		= 0;	// The id of the receive thread
 
 DWORD	Compute_CRC(BYTE *Buf, DWORD dwLen)
 {
