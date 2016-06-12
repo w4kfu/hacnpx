@@ -5,10 +5,10 @@
 
 #include "utils.h"
 
-HANDLE              hReceiveThread		= NULL;	// Recieve flag
+HANDLE              hReceiveThread		= NULL;	// Receive flag
 HANDLE              hPlayerEvent		= NULL;	// Event flag
 HANDLE				hKillEvent			= NULL;
-DWORD               idReceiveThread		= 0;	// The id of the recieve thread
+DWORD               idReceiveThread		= 0;	// The id of the receive thread
 
 void send_chat_message(SOCKET *sock, SOCKADDR_IN *sout, int size_name, int size_text);
 
