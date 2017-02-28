@@ -3,7 +3,7 @@
 LONG CALLBACK CallBackNearOEP(PEXCEPTION_POINTERS ExceptionInfo)
 {
     DbgMsg("[+] CallBackNearOEP?\n");
-    DbgMsg("[+] IP : "HEX_FORMAT"\n", GET_IP(ExceptionInfo));
+    DbgMsg("[+] IP : " HEX_FORMAT "\n", GET_IP(ExceptionInfo));
     DisasAt((PBYTE)GET_IP(ExceptionInfo), 0x40, GET_IP(ExceptionInfo));
     SearchAutoIAT((ULONG_PTR)GetModuleHandle(NULL), GET_IP(ExceptionInfo));
     DumpPE((ULONG_PTR)GetModuleHandle(NULL), "test_dumped.exe", (ULONG_PTR)GET_IP(ExceptionInfo) - (ULONG_PTR)GetModuleHandle(NULL), TRUE);
@@ -14,7 +14,7 @@ LONG CALLBACK CallBackNearOEP(PEXCEPTION_POINTERS ExceptionInfo)
 LONG CALLBACK CallBackEP(PEXCEPTION_POINTERS ExceptionInfo)
 {
     DbgMsg("[+] CallBackEP\n");
-    DbgMsg("[+] EP : "HEX_FORMAT"\n", (ULONG_PTR)GET_IP(ExceptionInfo));
+    DbgMsg("[+] EP : " HEX_FORMAT "\n", (ULONG_PTR)GET_IP(ExceptionInfo));
     /* RemoveBreakpoint((ULONG_PTR)ExceptionInfo->ExceptionRecord->ExceptionAddress); */
     RemoveBreakpoint((ULONG_PTR)GET_IP(ExceptionInfo));
     GuardUntilExecSection("<", CallBackNearOEP);

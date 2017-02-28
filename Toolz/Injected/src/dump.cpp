@@ -123,7 +123,7 @@ BOOL PrepareReconstruct(PBYTE *pDump, PULONG_PTR AllocSize)
     AddPESection((ULONG_PTR)pNewDump, ".inj", (DWORD)RVAIT, (DWORD)SizeNewSection, (DWORD)RVAIT, pinfo.Importer.TotalSizeIT);
     EditPE((ULONG_PTR)pNewDump, SIZE_OF_IMAGE, (PVOID)(RVAIT + SizeNewSection));
     EditPE((ULONG_PTR)pNewDump, IMPORT_TABLE, (PVOID)RVAIT);
-    EditPE((ULONG_PTR)pNewDump, IMPORT_TABLE_SIZE, (PVOID)pinfo.Importer.TotalSizeIT);
+    EditPE((ULONG_PTR)pNewDump, IMPORT_TABLE_SIZE, (PVOID)((ULONG_PTR)pinfo.Importer.TotalSizeIT));
     EditPE((ULONG_PTR)pNewDump, IMPORT_ADDRESS_TABLE, (PVOID)pinfo.Importer.StartIATRVA);
     EditPE((ULONG_PTR)pNewDump, IMPORT_ADDRESS_TABLE_SIZE, (PVOID)(pinfo.Importer.NbTotalApis * sizeof (ULONG_PTR)));
     *pDump = pNewDump;

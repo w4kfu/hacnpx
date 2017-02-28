@@ -17,7 +17,11 @@
         DbgMsg("0x%08X    %s    %s\n", (DWORD)(Address & 0xFFFFFFFF), Mnemonic, Op_str);
 #endif
 
+BOOL GetJmpIndirect(PBYTE bCode, ULONG_PTR *Dst);
+int DisasLength(PBYTE bCode);
 VOID DisasOne(PBYTE bCode, ULONG_PTR dwAddr, LPCSTR Modname = NULL);
-VOID DisasAt(PBYTE bCode, DWORD dwSize, ULONG_PTR dwAddr, LPCSTR Modname = NULL);
+VOID DisasOneAndReg(PBYTE bCode, ULONG_PTR dwAddr, LPCSTR Modname, PCONTEXT ContextRecord);
+BOOL DisasAt(PBYTE bCode, DWORD dwSize, ULONG_PTR dwAddr, LPCSTR Modname = NULL);
+BOOL TestDisasAt(PBYTE bCode, DWORD dwSize, ULONG_PTR dwAddr, LPCSTR Modname);
 
 #endif // __DISAS_H__

@@ -12,7 +12,7 @@
 #include <list>
 #include <map>
 
-#include "capstone/capstone.h"
+#include "capstone.h"
 
 typedef struct _EXPORTENTRY {
     WORD Ordinal;

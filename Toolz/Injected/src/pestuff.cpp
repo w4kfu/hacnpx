@@ -47,9 +47,9 @@ PVOID ParsePEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index)
     }
     switch(dwChamp) {
         case DIR_VIRTUAL_ADDRESS:
-            return (PVOID)rvas[Index].VirtualAddress;
+            return (PVOID)((ULONG_PTR)rvas[Index].VirtualAddress);
         case DIR_SIZE:
-            return (PVOID)rvas[Index].Size;
+            return (PVOID)((ULONG_PTR)rvas[Index].Size);
     }
     return 0;
 }
@@ -70,9 +70,9 @@ PVOID ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp)
     rvas = (PIMAGE_DATA_DIRECTORY) &pNT->OptionalHeader.DataDirectory;
     switch(dwChamp) {
         case SIZE_OF_IMAGE:
-            return (PVOID)pNT->OptionalHeader.SizeOfImage;
+            return (PVOID)((ULONG_PTR)pNT->OptionalHeader.SizeOfImage);
         case NB_SECTIONS:
-            return (PVOID)(DWORD)pNT->FileHeader.NumberOfSections;
+            return (PVOID)((ULONG_PTR)pNT->FileHeader.NumberOfSections);
         case PE_SECTIONS:
             return (PVOID)IMAGE_FIRST_SECTION(pNT);//(void*)((BYTE *)pNT + sizeof(IMAGE_NT_HEADERS64));
         case IMPORT_TABLE:
@@ -88,7 +88,7 @@ PVOID ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp)
         case EXPORT_TABLE_SIZE:
             return ParsePEDirectory(BaseAddress, DIR_SIZE, IMAGE_DIRECTORY_ENTRY_EXPORT);
         case ENTRY_POINT:
-            return (PVOID)pNT->OptionalHeader.AddressOfEntryPoint;
+            return (PVOID)((ULONG_PTR)pNT->OptionalHeader.AddressOfEntryPoint);
     }
     return NULL;
 }
@@ -114,15 +114,15 @@ PVOID GetSectionInfo(ULONG_PTR BaseAddress, ULONG_PTR dwAddr, DWORD dwChamp)
                 case SEC_NAME:
                     return (PVOID)pSection->Name;
                 case SEC_VIRT_SIZE:
-                    return (PVOID)pSection->Misc.VirtualSize;
+                    return (PVOID)((ULONG_PTR)pSection->Misc.VirtualSize);
                 case SEC_VIRT_ADDR:
-                    return (PVOID)pSection->VirtualAddress;
+                    return (PVOID)((ULONG_PTR)pSection->VirtualAddress);
                 case SEC_RAW_SIZE:
-                    return (PVOID)pSection->SizeOfRawData;
+                    return (PVOID)((ULONG_PTR)pSection->SizeOfRawData);
                 case SEC_RAW_ADDR:
-                    return (PVOID)pSection->PointerToRawData;
+                    return (PVOID)((ULONG_PTR)pSection->PointerToRawData);
                 case SEC_CHARAC:
-                    return (PVOID)pSection->Characteristics;
+                    return (PVOID)((ULONG_PTR)pSection->Characteristics);
             }
         }
         pSection++;
@@ -151,15 +151,15 @@ PVOID GetSectionInfo(ULONG_PTR BaseAddress, const char *Name, DWORD dwChamp)
                 case SEC_NAME:
                     return (PVOID)pSection->Name;
                 case SEC_VIRT_SIZE:
-                    return (PVOID)pSection->Misc.VirtualSize;
+                    return (PVOID)((ULONG_PTR)pSection->Misc.VirtualSize);
                 case SEC_VIRT_ADDR:
-                    return (PVOID)pSection->VirtualAddress;
+                    return (PVOID)((ULONG_PTR)pSection->VirtualAddress);
                 case SEC_RAW_SIZE:
-                    return (PVOID)pSection->SizeOfRawData;
+                    return (PVOID)((ULONG_PTR)pSection->SizeOfRawData);
                 case SEC_RAW_ADDR:
-                    return (PVOID)pSection->PointerToRawData;
+                    return (PVOID)((ULONG_PTR)pSection->PointerToRawData);
                 case SEC_CHARAC:
-                    return (PVOID)pSection->Characteristics;
+                    return (PVOID)((ULONG_PTR)pSection->Characteristics);
             }
         }
         pSection++;
@@ -167,23 +167,23 @@ PVOID GetSectionInfo(ULONG_PTR BaseAddress, const char *Name, DWORD dwChamp)
     return NULL;
 }
 
-DWORD RVA2Offset(ULONG_PTR BaseAddress, DWORD dwVA)
+ULONG_PTR RVA2Offset(ULONG_PTR BaseAddress, DWORD dwVA)
 {
-    DWORD VirtualAddress;
-    DWORD PointerToRawData;
+    ULONG_PTR VirtualAddress;
+    ULONG_PTR PointerToRawData;
 
-    VirtualAddress = (DWORD)GetSectionInfo(BaseAddress, dwVA, SEC_VIRT_ADDR);
-    PointerToRawData = (DWORD)GetSectionInfo(BaseAddress, dwVA, SEC_RAW_ADDR);
+    VirtualAddress = (ULONG_PTR)GetSectionInfo(BaseAddress, dwVA, SEC_VIRT_ADDR);
+    PointerToRawData = (ULONG_PTR)GetSectionInfo(BaseAddress, dwVA, SEC_RAW_ADDR);
     return ((dwVA - VirtualAddress) + PointerToRawData);
 }
 
 BOOL IsAddressInDirectory(ULONG_PTR BaseAddress, DWORD Index, DWORD Addr)
 {
-    DWORD DirectoryStart;
-    DWORD DirectorySize;
+    ULONG_PTR DirectoryStart;
+    ULONG_PTR DirectorySize;
 
-    DirectoryStart = (DWORD)ParsePEDirectory(BaseAddress, DIR_VIRTUAL_ADDRESS, Index);
-    DirectorySize = (DWORD)ParsePEDirectory(BaseAddress, DIR_SIZE, Index);
+    DirectoryStart = (ULONG_PTR)ParsePEDirectory(BaseAddress, DIR_VIRTUAL_ADDRESS, Index);
+    DirectorySize = (ULONG_PTR)ParsePEDirectory(BaseAddress, DIR_SIZE, Index);
     if (Addr >= DirectoryStart && Addr < (DirectoryStart + DirectorySize)) {
         return TRUE;
     }
@@ -329,7 +329,7 @@ BOOL EditPEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index, PVOID Va
     }
     switch(dwChamp) {
         case DIR_VIRTUAL_ADDRESS:
-            rvas[Index].VirtualAddress = (DWORD)Value;
+            rvas[Index].VirtualAddress = (DWORD)(Value);
             return TRUE;
         case DIR_SIZE:
             rvas[Index].Size = (DWORD)Value;

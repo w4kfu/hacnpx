@@ -2,18 +2,18 @@
 
 VOID HookMessageBoxA(PPUSHED_REGS pRegs)
 {
-    DbgMsg("[+] HookMessageBoxA - MessageBoxA! called from "HEX_FORMAT"\n", GET_RETURN_ADDR(pRegs));
+    DbgMsg("[+] HookMessageBoxA - MessageBoxA! called from " HEX_FORMAT "\n", GET_RETURN_ADDR(pRegs));
 }
 
 VOID HookInlineMesssageBoxA(PPUSHED_REGS pRegs)
 {
-    DbgMsg("[+] HookInlineMesssageBoxA - MessageBoxA! called from "HEX_FORMAT"\n", GET_RETURN_ADDR(pRegs));
+    DbgMsg("[+] HookInlineMesssageBoxA - MessageBoxA! called from " HEX_FORMAT "\n", GET_RETURN_ADDR(pRegs));
 }
 
 LONG CALLBACK CallBackEP(PEXCEPTION_POINTERS ExceptionInfo)
 {
     DbgMsg("[+] CallBackEP\n");
-    DbgMsg("[+] EP : "HEX_FORMAT"\n", (ULONG_PTR)GET_IP(ExceptionInfo));
+    DbgMsg("[+] EP : " HEX_FORMAT "\n", (ULONG_PTR)GET_IP(ExceptionInfo));
     RemoveBreakpoint((ULONG_PTR)GET_IP(ExceptionInfo));
     SetupPreMadeHookVirtualProtect();
     return EXCEPTION_CONTINUE_EXECUTION;

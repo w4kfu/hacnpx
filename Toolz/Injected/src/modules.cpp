@@ -37,11 +37,11 @@ PVOID GetModuleInfo(ULONG_PTR Addr, DWORD dwChamp)
                 case MOD_BASE:
                     return (PVOID)me.modBaseAddr;
                 case MOD_SIZE:
-                    return (PVOID)me.modBaseSize;
+                    return (PVOID)((ULONG_PTR)me.modBaseSize);
             }
         }
     } while (Module32Next(hModuleSnap, &me));
-    DbgMsg("[+] GetModuleInfo failed : "HEX_FORMAT"\n", Addr);
+    DbgMsg("[+] GetModuleInfo failed : " HEX_FORMAT "\n", Addr);
     return NULL;
 }
 

@@ -3,16 +3,16 @@
 
 #include "injected.h"
 
-#if _WIN64
-    #define LDE_X86 64
-#else
-    #define LDE_X86 0
-#endif
-
-#ifdef __cplusplus
-extern "C"
-#endif
-int __stdcall LDE(void* address , DWORD type);
+//#if _WIN64
+//    #define LDE_X86 64
+//#else
+//    #define LDE_X86 0
+//#endif
+//
+//#ifdef __cplusplus
+//extern "C"
+//#endif
+//int __stdcall LDE(void* address , DWORD type);
 
 #if _WIN64
 typedef struct _PUSHED_REGS {
@@ -50,6 +50,8 @@ BOOL SetupIATHook(ULONG_PTR BaseAddress, LPCSTR ModName, LPCSTR ProcName, PROC p
 BOOL ReplaceIATEntryInMod(ULONG_PTR BaseAddress, LPCSTR ModName, PROC pfnCurrent, PROC pfnNew);
 BOOL SetupInlineHook(LPCSTR ModName, LPCSTR ProcName, PROC pfnNew);
 BOOL SetupInlineHook(ULONG_PTR Addr, PROC pfnNew);
+BOOL SetupInlineHookOld(ULONG_PTR Addr, PROC pfnNew);
+ULONG_PTR FindFreeMemory(ULONG_PTR pOrigin);
 VOID SetupPreMadeHookVirtualProtect(VOID);
 VOID SetupPreMadeHookSocket(VOID);
 VOID SetupPreMadeHookRecv(VOID);
@@ -59,6 +61,6 @@ VOID SetupPreMadeHookConnect(VOID);
 VOID SetupPreMadeHookWSASend(VOID);
 VOID SetupPreMadeHookWSASendTo(VOID);
 VOID SetupPreMadeHookWSAConnect(VOID);
-
+VOID SetupHookRetAddr(PPUSHED_REGS pRegs, PROC pfnNew);
 
 #endif // __HOOKSTUFF_H__

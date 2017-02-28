@@ -6,7 +6,7 @@ VOID StartInjected(VOID)
 
     MakeConsole();
     DbgMsg("[+] DLL Injected\n");
-    CmdLine = GetCommandLine();
+    CmdLine = GetCommandLineA();
     if (CmdLine) {
         DbgMsg("[+] CmdLine : %s\n", CmdLine);
     }

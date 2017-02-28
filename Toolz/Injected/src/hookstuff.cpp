@@ -144,11 +144,64 @@ BOOL SetupInlineHook(LPCSTR ModName, LPCSTR ProcName, PROC pfnNew)
     return SetupInlineHook(Addr, pfnNew);
 }
 
-BOOL SetupInlineHook(ULONG_PTR Addr, PROC pfnNew)
+ULONG_PTR FindPrevFreeRegion(LPVOID pAddress, LPVOID pMinAddr, DWORD dwAllocationGranularity)
+{
+    ULONG_PTR tryAddr = (ULONG_PTR)pAddress;
+
+    tryAddr -= tryAddr % dwAllocationGranularity;
+    tryAddr -= dwAllocationGranularity;
+    while (tryAddr >= (ULONG_PTR)pMinAddr) {
+        MEMORY_BASIC_INFORMATION mbi;
+        if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) == 0) {
+            DbgMsg("[-] FindPrevFreeRegion - VirtualQuery failed : %lu\n", GetLastError());
+            break;
+        }
+        if (mbi.State == MEM_FREE) {
+            return tryAddr;
+        }
+        if ((ULONG_PTR)mbi.AllocationBase < dwAllocationGranularity) {
+            break;
+        }
+        tryAddr = (ULONG_PTR)mbi.AllocationBase - dwAllocationGranularity;
+    }
+    return NULL;
+}
+
+ULONG_PTR FindFreeMemory(ULONG_PTR pOrigin)
+{
+    SYSTEM_INFO si;
+    ULONG_PTR minAddr;
+    ULONG_PTR maxAddr;
+    ULONG_PTR pAlloc = pOrigin;
+    LPVOID pBlock = NULL;
+    
+    GetSystemInfo(&si);
+    minAddr = (ULONG_PTR)si.lpMinimumApplicationAddress;
+    maxAddr = (ULONG_PTR)si.lpMaximumApplicationAddress;
+    while ((ULONG_PTR)pAlloc >= minAddr) {
+        pAlloc = FindPrevFreeRegion((LPVOID)pAlloc, (LPVOID)minAddr, si.dwAllocationGranularity);
+        if (pAlloc == NULL) {
+            break;
+        }
+        pBlock = VirtualAlloc((LPVOID)pAlloc, 0x20, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+        if (pBlock != NULL) {
+            break;
+        }
+    }
+    if (pBlock == NULL) {
+        DbgMsg("[-] FindFreeMemory - ERROR!\n");
+        exit(EXIT_FAILURE);
+    }
+    //printf("[+] NEW ADDR : " HEX_FORMAT "\n", pBlock);
+    return (ULONG_PTR)pBlock;
+}
+
+BOOL SetupInlineHookOld(ULONG_PTR Addr, PROC pfnNew)
 {
     PVOID Trampo = NULL;
     DWORD dwLen = 0;
     DWORD dwOldProt = 0;
+    ULONG_PTR Dst;
 
     if (Addr == 0) {
         return FALSE;
@@ -159,12 +212,16 @@ BOOL SetupInlineHook(ULONG_PTR Addr, PROC pfnNew)
         return FALSE;
     }
     memcpy(Trampo, GenericTrampo, sizeof (GenericTrampo));
+    while (GetJmpIndirect((PBYTE)Addr, &Dst) == TRUE) {
+        Addr = Dst;
+    }
 #if _WIN64
     while (dwLen < 14) {
 #else
     while (dwLen < 5) {
 #endif
-        dwLen += LDE((PVOID)(Addr + dwLen), LDE_X86);
+        //dwLen += LDE((PVOID)(Addr + dwLen), LDE_X86);
+        dwLen += DisasLength((PBYTE)(Addr + dwLen));
     }
     memcpy((PBYTE)Trampo + sizeof (GenericTrampo) - (sizeof (ULONG_PTR) * 2) - 1 - 26, (PVOID)Addr, dwLen);
     VirtualProtect((LPVOID)Addr, dwLen, PAGE_EXECUTE_READWRITE, &dwOldProt);
@@ -186,6 +243,63 @@ BOOL SetupInlineHook(ULONG_PTR Addr, PROC pfnNew)
     return TRUE;
 }
 
+BOOL SetupInlineHook(ULONG_PTR Addr, PROC pfnNew)
+{
+    PVOID Trampo = NULL;
+    DWORD dwLen = 0;
+    DWORD dwOldProt = 0;
+    ULONG_PTR Dst;
+    
+    if (Addr == 0) {
+        return FALSE;
+    }
+    Trampo = VirtualAlloc(0, sizeof (GenericTrampo), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    if (Trampo == NULL) {
+        DbgMsg("[-] SetupInlineHook - VirtualAlloc failed : %lu\n", GetLastError());
+        return FALSE;
+    }
+    memcpy(Trampo, GenericTrampo, sizeof (GenericTrampo));
+    while (GetJmpIndirect((PBYTE)Addr, &Dst) == TRUE) {
+        Addr = Dst;
+    }
+//#if _WIN64
+//    while (dwLen < 14) {
+//#else
+    while (dwLen < 5) {
+//#endif
+        //dwLen += LDE((PVOID)(Addr + dwLen), LDE_X86);
+        dwLen += DisasLength((PBYTE)(Addr + dwLen));
+    }
+    memcpy((PBYTE)Trampo + sizeof (GenericTrampo) - (sizeof (ULONG_PTR) * 2) - 1 - 26, (PVOID)Addr, dwLen);
+    if (!VirtualProtect((LPVOID)Addr, dwLen, PAGE_EXECUTE_READWRITE, &dwOldProt)) {
+        DbgMsg("[-] SetupInlineHook - VirtualProtect failed : %lu\n", GetLastError());
+        return FALSE;
+    }
+#if _WIN64
+    ULONG_PTR RelayFunc = FindFreeMemory(Addr);
+    if (RelayFunc == NULL) {
+        return FALSE;
+    }
+    *(PBYTE)RelayFunc = 0xFF;
+    *(PBYTE)((PBYTE)RelayFunc + 1) = 0x25;
+    *(PDWORD)((PBYTE)RelayFunc + 2) = (DWORD)0;
+    *(PDWORD64)((PBYTE)RelayFunc + 6) = (DWORD64)Trampo;
+    *(PBYTE)Addr = 0xE9;
+    *(PDWORD)((PBYTE)Addr + 1) = (DWORD)((BYTE*)RelayFunc - (BYTE*)Addr - 5);
+#else
+    *(PBYTE)Addr = 0xE9;
+    *(PDWORD)((PBYTE)Addr + 1) = (BYTE*)Trampo - (BYTE*)Addr - 5;
+#endif
+    *(ULONG_PTR*)((ULONG_PTR)Trampo + sizeof (GenericTrampo) - sizeof (ULONG_PTR) - 1) = (ULONG_PTR)Addr + dwLen;
+    *(ULONG_PTR*)((ULONG_PTR)Trampo + sizeof (GenericTrampo) - (sizeof (ULONG_PTR) * 2) - 1) = (ULONG_PTR)pfnNew;
+    #ifndef _WIN64
+        *(ULONG_PTR*)((ULONG_PTR)Trampo + sizeof (GenericTrampo) - (sizeof (ULONG_PTR) * 3) - 1) = (ULONG_PTR)Trampo + (ULONG_PTR)sizeof (GenericTrampo) - 1 - sizeof (ULONG_PTR);
+    #endif
+    VirtualProtect((LPVOID)Addr, dwLen, dwOldProt, &dwOldProt);
+    FlushInstructionCache(GetCurrentProcess(), (LPCVOID)Addr, 0x06);
+    return TRUE;
+}
+
 /* kernel32.dll!VirtualProtect */
 
 VOID PreMadeHookVirtualProtect(PPUSHED_REGS pRegs)
@@ -195,7 +309,7 @@ VOID PreMadeHookVirtualProtect(PPUSHED_REGS pRegs)
     RetAddr = GET_RETURN_ADDR(pRegs);
     if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
         return;
-    DbgMsg("[+] VirtualProtect("HEX_FORMAT", 0x%08X, 0x%08X, 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
+    DbgMsg("[+] VirtualProtect(" HEX_FORMAT ", 0x%08X, 0x%08X, 0x%08X); => " HEX_FORMAT "\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
 }
 
 VOID SetupPreMadeHookVirtualProtect(VOID)
@@ -214,7 +328,7 @@ VOID PreMadeHookSocket(PPUSHED_REGS pRegs)
     RetAddr = GET_RETURN_ADDR(pRegs);
     if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
         return;
-    DbgMsg("[+] socket(0x%08X, 0x%08X, 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), RetAddr);
+    DbgMsg("[+] socket(0x%08X, 0x%08X, 0x%08X); => " HEX_FORMAT "\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), RetAddr);
 }
 
 VOID SetupPreMadeHookSocket(VOID)
@@ -237,7 +351,7 @@ VOID PreMadeHookRecv(PPUSHED_REGS pRegs)
     RetAddr = GET_RETURN_ADDR(pRegs);
     if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
         return;
-    DbgMsg("[+] recv(0x%08X, "HEX_FORMAT", 0x%08X, 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
+    DbgMsg("[+] recv(0x%08X, " HEX_FORMAT ", 0x%08X, 0x%08X); => " HEX_FORMAT "\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
 }
 
 VOID SetupPreMadeHookRecv(VOID)
@@ -260,7 +374,7 @@ VOID PreMadeHookSend(PPUSHED_REGS pRegs)
     RetAddr = GET_RETURN_ADDR(pRegs);
     if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
         return;
-    DbgMsg("[+] send(0x%08X, "HEX_FORMAT", 0x%08X, 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
+    DbgMsg("[+] send(0x%08X, " HEX_FORMAT ", 0x%08X, 0x%08X); => " HEX_FORMAT "\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
 }
 
 VOID SetupPreMadeHookSend(VOID)
@@ -283,7 +397,7 @@ VOID PreMadeHookSendto(PPUSHED_REGS pRegs)
     RetAddr = GET_RETURN_ADDR(pRegs);
     if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
         return;
-    DbgMsg("[+] sendto(0x%08X, "HEX_FORMAT", 0x%08X, 0x%08X, ...); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
+    DbgMsg("[+] sendto(0x%08X, " HEX_FORMAT ", 0x%08X, 0x%08X, ...); => " HEX_FORMAT "\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), GET_ARG_4(pRegs), RetAddr);
     HexDump((PVOID)GET_ARG_2(pRegs), GET_ARG_3(pRegs) < 0x100 ? GET_ARG_3(pRegs) : 0x100); 
 }
 
@@ -307,7 +421,7 @@ VOID PreMadeHookConnect(PPUSHED_REGS pRegs)
     RetAddr = GET_RETURN_ADDR(pRegs);
     if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
         return;
-    DbgMsg("[+] connect(0x%08X, "HEX_FORMAT", 0x%08X); => "HEX_FORMAT"\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), RetAddr);
+    DbgMsg("[+] connect(0x%08X, " HEX_FORMAT ", 0x%08X); => " HEX_FORMAT "\n", GET_ARG_1(pRegs), GET_ARG_2(pRegs), GET_ARG_3(pRegs), RetAddr);
 }
 
 VOID SetupPreMadeHookConnect(VOID)
@@ -330,7 +444,7 @@ VOID PreMadeHookWSAConnect(PPUSHED_REGS pRegs)
     RetAddr = GET_RETURN_ADDR(pRegs);
     if (RetAddr >= pinfo.ModuleInjectedBase && (RetAddr < (pinfo.ModuleInjectedBase + pinfo.ModuleInjectedSize)))
         return;
-    DbgMsg("[+] WSAConnect(...); => "HEX_FORMAT"\n", RetAddr);
+    DbgMsg("[+] WSAConnect(...); => " HEX_FORMAT "\n", RetAddr);
 }
 
 VOID SetupPreMadeHookWSAConnect(VOID)
@@ -360,7 +474,7 @@ VOID PreMadeHookWSASend(PPUSHED_REGS pRegs)
     if (dwBufferCount > 1) {
         DbgMsg("[-] PreMadeHookWSASend - dwBufferCount > 1\n");
     }
-    DbgMsg("[+] WSASend("HEX_FORMAT", 0x%08X); => "HEX_FORMAT"\n", lpBuffers[0].buf, lpBuffers[0].len, RetAddr);
+    DbgMsg("[+] WSASend(" HEX_FORMAT ", 0x%08X); => " HEX_FORMAT "\n", lpBuffers[0].buf, lpBuffers[0].len, RetAddr);
     HexDump(lpBuffers[0].buf, lpBuffers[0].len < 0x100 ? lpBuffers[0].len : 0x100); 
 }
 
@@ -391,7 +505,7 @@ VOID PreMadeHookWSASendTo(PPUSHED_REGS pRegs)
     if (dwBufferCount > 1) {
         DbgMsg("[-] PreMadeHookWSASend - dwBufferCount > 1\n");
     }
-    DbgMsg("[+] WSASendTo("HEX_FORMAT", 0x%08X); => "HEX_FORMAT"\n", lpBuffers[0].buf, lpBuffers[0].len, RetAddr);
+    DbgMsg("[+] WSASendTo(" HEX_FORMAT ", 0x%08X); => " HEX_FORMAT "\n", lpBuffers[0].buf, lpBuffers[0].len, RetAddr);
     HexDump(lpBuffers[0].buf, lpBuffers[0].len < 0x100 ? lpBuffers[0].len : 0x100); 
 }
 
@@ -405,4 +519,81 @@ VOID SetupPreMadeHookWSASendTo(VOID)
     if (SetupInlineHook("Ws2_32.dll", "WSASendTo", (PROC)PreMadeHookWSASendTo) == FALSE) {
         DbgMsg("[-] SetupPreMadeHookWSASendTo - SetupInlineHook failed!\n");
     }
+}
+
+#ifdef _WIN64
+BYTE GenericRetTrampo[] =  "\x54"                                      // push    rsp
+                        "\x50"                                      // push    rax
+                        "\x53"                                      // push    rbx
+                        "\x51"                                      // push    rcx
+                        "\x52"                                      // push    rdx
+                        "\x55"                                      // push    rbp
+                        "\x57"                                      // push    rdi
+                        "\x56"                                      // push    rsi
+                        "\x41\x50"                                  // push    r8
+                        "\x41\x51"                                  // push    r9
+                        "\x41\x52"                                  // push    r10
+                        "\x41\x53"                                  // push    r11
+                        "\x41\x54"                                  // push    r12
+                        "\x41\x55"                                  // push    r13
+                        "\x41\x56"                                  // push    r14
+                        "\x41\x57"                                  // push    r15
+                        "\x48\x8B\xCC"                              // mov     rcx, rsp
+                        "\x48\x83\xEC\x20"                          // sub     rsp, 20h         // 28 -> 20 because 16 ALIGN FUCKED MMX ETC
+                        "\xFF\x15\x36\x00\x00\x00"                  // call    cs:HookFunc
+                        "\x48\x83\xC4\x20"                          // add     rsp, 20h
+                        "\x41\x5F"                                  // pop     r15
+                        "\x41\x5E"                                  // pop     r14
+                        "\x41\x5D"                                  // pop     r13
+                        "\x41\x5C"                                  // pop     r12
+                        "\x41\x5B"                                  // pop     r11
+                        "\x41\x5A"                                  // pop     r10
+                        "\x41\x59"                                  // pop     r9
+                        "\x41\x58"                                  // pop     r8
+                        "\x5E"                                      // pop     rsi
+                        "\x5F"                                      // pop     rdi
+                        "\x5D"                                      // pop     rbp
+                        "\x5A"                                      // pop     rdx
+                        "\x59"                                      // pop     rcx
+                        "\x5B"                                      // pop     rbx
+                        "\x58"                                      // pop     rax
+                        "\x5C"                                      // pop     rsp
+                        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"  // place for instructions to restore
+                        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
+                        "\xFF\x25\x08\x00\x00\x00"                  // jmp     cs:Mm
+                        "\x48\x47\x46\x45\x44\x43\x42\x41"          // HookFunc dq 4142434445464748h
+                        "\x48\x47\x46\x45\x44\x43\x42\x41";         // Mm dq 4142434445464748h
+#else
+BYTE GenericRetTrampo[] = "\x60"                                      // pushad
+                       "\x8B\xCC"                                   // mov ecx, esp
+                       "\xE8\x00\x00\x00\x00"                       // call $+5
+                       "\x5B"                                       // pop ebx
+                       "\x8B\x43\x25"                               // mov eax, [ebx + 0x25]
+                       "\x51"                                       // push ecx
+                       "\xFF\xD0"                                   // call eax
+                       "\x83\xC4\x04"                               // add esp, 0x4
+                       "\x61"                                       // popad
+                       "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"   // place for instructions to restore
+                       "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"   //
+                       "\xFF\x25\x43\x43\x43\x43"                   // jmp [????]
+                       "\x41\x41\x41\x41"                           // 0x41414141
+                       "\x42\x42\x42\x42";                          // 0x42424242
+#endif
+
+VOID SetupHookRetAddr(PPUSHED_REGS pRegs, PROC pfnNew)
+{
+    PVOID Trampo = NULL;
+
+    Trampo = VirtualAlloc(0x00, sizeof (GenericRetTrampo), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    if (Trampo == NULL) {
+        DbgMsg("[-] SetupHookReturnAddr - VirtualAlloc failed : %lu\n", GetLastError());
+        return;
+    }
+    memcpy(Trampo, GenericRetTrampo, sizeof (GenericRetTrampo));
+    *(ULONG_PTR*)((ULONG_PTR)Trampo + sizeof (GenericRetTrampo) - sizeof (ULONG_PTR) - 1) = (ULONG_PTR)GET_RETURN_ADDR(pRegs);
+    *(ULONG_PTR*)((ULONG_PTR)Trampo + sizeof (GenericRetTrampo) - (sizeof (ULONG_PTR) * 2) - 1) = (ULONG_PTR)pfnNew;
+    #ifndef _WIN64
+        *(ULONG_PTR*)((ULONG_PTR)Trampo + sizeof (GenericRetTrampo) - (sizeof (ULONG_PTR) * 3) - 1) = (ULONG_PTR)Trampo + (ULONG_PTR)sizeof (GenericRetTrampo) - 1 - sizeof (ULONG_PTR);
+    #endif
+    GET_RETURN_ADDR(pRegs) = (ULONG_PTR)Trampo;
 }

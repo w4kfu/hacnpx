@@ -37,12 +37,13 @@ BOOL ValidateHeader(ULONG_PTR BaseAddress);
 PVOID ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp);
 PVOID GetSectionInfo(ULONG_PTR BaseAddress, ULONG_PTR dwAddr, DWORD dwChamp);
 PVOID GetSectionInfo(ULONG_PTR BaseAddress, const char *Name, DWORD dwChamp);
-DWORD RVA2Offset(ULONG_PTR BaseAddress, DWORD dwVA);
+ULONG_PTR RVA2Offset(ULONG_PTR BaseAddress, DWORD dwVA);
 std::list<PEXPORTENTRY> GetExportList(ULONG_PTR BaseAddress);
 PEXPORTENTRY GetExport(PMODULE Module, ULONG_PTR BaseAddress);
 VOID AddPESection(ULONG_PTR ImageBase, LPCSTR Name, DWORD PtrRawData, DWORD VirtualSize, DWORD VA, DWORD SizeSection, DWORD Characteristics = 0xE0000060);
 BOOL EditPE(ULONG_PTR BaseAddress, DWORD dwChamp, PVOID Value);
 VOID FixSectionSizeOffset(ULONG_PTR BaseAddress);
 BOOL IsAnExport(ULONG_PTR Addr);
+BOOL EditPEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index, PVOID Value);
 
 #endif // __PESTUFF_H__

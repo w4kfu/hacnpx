@@ -11,6 +11,7 @@ set(INJECTED_FILES_SRC
     pestuff.cpp
     utils.cpp)
 
-include_directories(${CMAKE_SOURCE_DIR}/src/include/ ${CMAKE_SOURCE_DIR}/src/include_capstone/)
+include_directories(${CMAKE_SOURCE_DIR}/components/capstone-next/include/capstone/)
+include_directories(${CMAKE_SOURCE_DIR}/src/include/)
 
 add_library(injected ${INJECTED_FILES_SRC})

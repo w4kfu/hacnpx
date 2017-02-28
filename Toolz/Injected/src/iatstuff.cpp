@@ -18,7 +18,7 @@ ULONG_PTR ImportEntryModule(ULONG_PTR Start)
 
     for (Current = Start; *(PULONG_PTR)Current != 0; Current += SIZE_IMPORT_ENTRY) {
         if (!IsBadReadMemory((PVOID)Current, SIZE_IMPORT_ENTRY) && !IsBadReadMemory((PVOID)*(PULONG_PTR)Current, SIZE_IMPORT_ENTRY)) {
-            DbgMsg("[+] "HEX_FORMAT"\n", *(PULONG_PTR)Current);
+            DbgMsg("[+] " HEX_FORMAT "\n", *(PULONG_PTR)Current);
             if (MyRtlPcToFileHeader(*(PULONG_PTR)Current, &BaseAddr) == TRUE) {
                 ModuleBaseMap[BaseAddr] += 1;
             }
@@ -62,14 +62,14 @@ VOID BuildNewImport(ULONG_PTR IATStart, ULONG_PTR IATEnd)
 
 BOOL SearchAutoIAT(ULONG_PTR BaseAddress, ULONG_PTR OEP)
 {
-    DWORD VirtualAddr;
+    ULONG_PTR VirtualAddr;
     DWORD VirtualSize;
 
     if (pinfo.lModule.size() == 0) {
         InitIATStuff();
         SearchBinaryAllCall(BaseAddress, OEP);
     }
-    VirtualAddr = (DWORD)GetSectionInfo(BaseAddress, OEP - BaseAddress, SEC_VIRT_ADDR);
+    VirtualAddr = (ULONG_PTR)GetSectionInfo(BaseAddress, OEP - BaseAddress, SEC_VIRT_ADDR);
     if (VirtualAddr == 0) {
         DbgMsg("[-] SearchAutoIAT - GetSectionInfo failed\n");
         return FALSE;
@@ -84,19 +84,19 @@ BOOL SearchAutoIAT(ULONG_PTR BaseAddress, ULONG_PTR OEP)
 
 BOOL SearchBinaryAllCall(ULONG_PTR BaseAddress, ULONG_PTR OEP)
 {
-    DWORD VirtualAddr;
-    DWORD VirtualSize;
+    ULONG_PTR VirtualAddr;
+    ULONG_PTR VirtualSize;
     PBYTE pActual;
 
     if (pinfo.lModule.size() == 0) {
         InitIATStuff();
     }
-    VirtualAddr = (DWORD)GetSectionInfo(BaseAddress, OEP - BaseAddress, SEC_VIRT_ADDR);
+    VirtualAddr = (ULONG_PTR)GetSectionInfo(BaseAddress, OEP - BaseAddress, SEC_VIRT_ADDR);
     if (VirtualAddr == 0) {
         DbgMsg("[-] SearchAutoIAT - GetSectionInfo failed\n");
         return FALSE;
     }
-    VirtualSize = (DWORD)GetSectionInfo(BaseAddress, OEP - BaseAddress, SEC_VIRT_SIZE);
+    VirtualSize = (ULONG_PTR)GetSectionInfo(BaseAddress, OEP - BaseAddress, SEC_VIRT_SIZE);
     if (VirtualSize == 0) {
         DbgMsg("[-] SearchAutoIAT - GetSectionInfo failed\n");
         return FALSE;
@@ -222,10 +222,10 @@ BOOL SearchAutoIAT(ULONG_PTR BaseAddress, ULONG_PTR SearchStart, DWORD SearchSiz
                 if (IsAnExport(DestAddr) == TRUE) {
                     DisasOne(pActual, (ULONG_PTR)pActual, NULL);
                     IATStart = SearchIATStart(BaseAddress, Addr);
-                    DbgMsg("[+] IATStart : "HEX_FORMAT"\n", IATStart);
+                    DbgMsg("[+] IATStart : " HEX_FORMAT "\n", IATStart);
                     IATEnd = SearchIATEnd(BaseAddress, Addr);
-                    DbgMsg("[+] IATEnd : "HEX_FORMAT"\n", IATEnd);
-                    DbgMsg("[+] windbg : dps "HEX_FORMAT" L((("HEX_FORMAT" - "HEX_FORMAT") / %d) + 1)\n", IATStart, IATEnd, IATStart, sizeof (ULONG_PTR));
+                    DbgMsg("[+] IATEnd : " HEX_FORMAT "\n", IATEnd);
+                    DbgMsg("[+] windbg : dps " HEX_FORMAT " L(((" HEX_FORMAT " - " HEX_FORMAT ") / %d) + 1)\n", IATStart, IATEnd, IATStart, sizeof (ULONG_PTR));
                     pinfo.Importer.StartIATRVA = (IATStart - BaseAddress);
                     BuildNewImport(IATStart, IATEnd);
                     //DebugBreak();
@@ -240,11 +240,11 @@ BOOL SearchAutoIAT(ULONG_PTR BaseAddress, ULONG_PTR SearchStart, DWORD SearchSiz
 
 ULONG_PTR SearchIATStart(ULONG_PTR BaseAddress, ULONG_PTR SearchStart)
 {
-    DWORD VirtualAddr;
+    ULONG_PTR VirtualAddr;
     ULONG_PTR SectionStart;
     DWORD dwBlankSpace = 0;
 
-    VirtualAddr = (DWORD)GetSectionInfo(BaseAddress, SearchStart - BaseAddress, SEC_VIRT_ADDR);
+    VirtualAddr = (ULONG_PTR)GetSectionInfo(BaseAddress, SearchStart - BaseAddress, SEC_VIRT_ADDR);
     if (VirtualAddr == 0) {
         DbgMsg("[-] SearchIATStart - GetSectionInfo failed\n");
         return 0;
@@ -272,17 +272,17 @@ ULONG_PTR SearchIATStart(ULONG_PTR BaseAddress, ULONG_PTR SearchStart)
 
 ULONG_PTR SearchIATEnd(ULONG_PTR BaseAddress, ULONG_PTR SearchStart)
 {
-    DWORD VirtualAddr;
-    DWORD VirtualSize;
+    ULONG_PTR VirtualAddr;
+    ULONG_PTR VirtualSize;
     ULONG_PTR SectionEnd;
     DWORD dwBlankSpace = 0;
 
-    VirtualAddr = (DWORD)GetSectionInfo(BaseAddress, SearchStart - BaseAddress, SEC_VIRT_ADDR);
+    VirtualAddr = (ULONG_PTR)GetSectionInfo(BaseAddress, SearchStart - BaseAddress, SEC_VIRT_ADDR);
     if (VirtualAddr == 0) {
         DbgMsg("[-] SearchIATStart - GetSectionInfo failed\n");
         return 0;
     }
-    VirtualSize = (DWORD)GetSectionInfo(BaseAddress, SearchStart - BaseAddress, SEC_VIRT_SIZE);
+    VirtualSize = (ULONG_PTR)GetSectionInfo(BaseAddress, SearchStart - BaseAddress, SEC_VIRT_SIZE);
     if (VirtualSize == 0) {
         DbgMsg("[-] SearchIATStart - GetSectionInfo failed\n");
         return 0;
@@ -392,7 +392,7 @@ VOID ComputeAllITSize(PIMPORTER Importer)
         ModuleNameLength += strlen((*it_mod)->szModule) + 1;
         for (it_exp = (*it_mod)->lExport.begin(); it_exp != (*it_mod)->lExport.end(); ++it_exp) {
             if (!strncmp((*it_exp)->FunctionName, "Ordinal_0x", strlen("Ordinal_0x"))) {
-                DbgMsg("[-] ORDINAL : TODO %s!%s ; 0x%08X ; "HEX_FORMAT" ; "HEX_FORMAT" at "HEX_FORMAT"\n", (*it_mod)->szModule, (*it_exp)->FunctionName, (*it_exp)->Ordinal, (*it_exp)->FunctionRVA, (*it_exp)->FunctionVA, (*it_exp)->RVA);
+                DbgMsg("[-] ORDINAL : TODO %s!%s ; 0x%08X ; " HEX_FORMAT " ; " HEX_FORMAT " at " HEX_FORMAT "\n", (*it_mod)->szModule, (*it_exp)->FunctionName, (*it_exp)->Ordinal, (*it_exp)->FunctionRVA, (*it_exp)->FunctionVA, (*it_exp)->RVA);
                 //DebugBreak();
                 //ExitProcess(42);
             }
@@ -432,11 +432,11 @@ VOID BuildIT(PBYTE pDump, ULONG_PTR RVAIT)
         RVAModuleName += (DWORD)strlen((*it_mod)->szModule) + 1;
         for (it_exp = (*it_mod)->lExport.begin(); it_exp != (*it_mod)->lExport.end(); ++it_exp) {
             if (*(PULONG_PTR)(pDump + dwStartIAT) == 0) {
-                DbgMsg("[-] BuildIT - Entry NULL at "HEX_FORMAT"\n", pDump + dwStartIAT);
+                DbgMsg("[-] BuildIT - Entry NULL at " HEX_FORMAT "\n", pDump + dwStartIAT);
                 ExitProcess(42);
             }
             if (*(PULONG_PTR)(pDump + dwStartIAT) != (*it_exp)->FunctionVA) {
-                DbgMsg("[-] BuildIT - Fail FunctionVA at "HEX_FORMAT"\n", pDump + dwStartIAT);
+                DbgMsg("[-] BuildIT - Fail FunctionVA at " HEX_FORMAT "\n", pDump + dwStartIAT);
                 ExitProcess(42);
             }
             if (!strncmp((*it_exp)->FunctionName, "Ordinal_0x", strlen("Ordinal_0x"))) {

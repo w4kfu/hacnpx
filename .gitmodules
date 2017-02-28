@@ -1,0 +1,4 @@
+[submodule "Toolz/Injected/components/capstone"]
+	path = Toolz/Injected/components/capstone-next
+	url = https://github.com/aquynh/capstone.git
+	branch = next

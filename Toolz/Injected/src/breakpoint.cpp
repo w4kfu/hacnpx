@@ -15,6 +15,8 @@ LONG CALLBACK ProtectionFaultVectoredHandler(PEXCEPTION_POINTERS ExceptionInfo)
     if (ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_BREAKPOINT) {
         for (it = lBPInfo.begin(); it != lBPInfo.end(); ++it) {
             if ((*it).Addr == GET_IP(ExceptionInfo)) {
+                ExceptionInfo->ContextRecord->Dr0 = (*it).Buffer;
+                ExceptionInfo->ContextRecord->Dr1 = (*it).BufferSize;
                 if ((*it).VectoredHandler(ExceptionInfo) == EXCEPTION_CONTINUE_EXECUTION)
                     return EXCEPTION_CONTINUE_EXECUTION;
                 return EXCEPTION_CONTINUE_SEARCH;
@@ -46,6 +48,35 @@ LONG CALLBACK ProtectionFaultVectoredHandler(PEXCEPTION_POINTERS ExceptionInfo)
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
+VOID AddBreakpoint(ULONG_PTR Addr, ULONG_PTR Buffer, DWORD BufferSize, PVECTORED_EXCEPTION_HANDLER VectoredHandler)
+{
+    DWORD dwOldProt;
+    BPINFO BpInfo;
+
+    if (protVectoredHandlerEP == NULL) {
+        protVectoredHandlerEP = AddVectoredExceptionHandler(0, ProtectionFaultVectoredHandler);
+        if (protVectoredHandlerEP == NULL) {
+            DbgMsg("[-] AddBreakpoint - AddVectoredExceptionHandler failed : %lu\n", GetLastError());
+            return;
+        }
+    }
+    BpInfo.Addr = Addr;
+    BpInfo.Buffer = Buffer;
+    BpInfo.BufferSize = BufferSize;
+    BpInfo.VectoredHandler = VectoredHandler;
+    if (!VirtualProtect((LPVOID)Addr, 0x1, PAGE_EXECUTE_READWRITE, &dwOldProt)) {
+        DbgMsg("[-] AddBreakpoint - VirtualProtect failed : %lu\n", GetLastError());
+        return;
+    }
+    BpInfo.OriginalByte = *(PBYTE)Addr;
+    *(PBYTE)Addr = 0xCC;
+    if (!VirtualProtect((LPVOID)Addr, 0x1, dwOldProt, &dwOldProt)) {
+        DbgMsg("[-] AddBreakpoint - VirtualProtect failed : %lu\n", GetLastError());
+        return;
+    }
+    lBPInfo.push_back(BpInfo);
+}
+
 VOID AddBreakpoint(ULONG_PTR Addr, PVECTORED_EXCEPTION_HANDLER VectoredHandler)
 {
     DWORD dwOldProt;
@@ -59,6 +90,8 @@ VOID AddBreakpoint(ULONG_PTR Addr, PVECTORED_EXCEPTION_HANDLER VectoredHandler)
         }
     }
     BpInfo.Addr = Addr;
+    BpInfo.Buffer = 0x00;
+    BpInfo.BufferSize = 0x00;
     BpInfo.VectoredHandler = VectoredHandler;
     if (!VirtualProtect((LPVOID)Addr, 0x1, PAGE_EXECUTE_READWRITE, &dwOldProt)) {
         DbgMsg("[-] AddBreakpoint - VirtualProtect failed : %lu\n", GetLastError());
@@ -104,13 +137,13 @@ BOOL RemoveBreakpoint(ULONG_PTR Addr)
 VOID GuardUntilExecSection(const char *Name, PVECTORED_EXCEPTION_HANDLER VectoredHandler)
 {
     ULONG_PTR ModuleBase = 0;
-    DWORD dwSectionBase = 0;
-    DWORD dwSectionSize = 0;
+    ULONG_PTR dwSectionBase = 0;
+    ULONG_PTR dwSectionSize = 0;
     DWORD dwOldProt;
 
     ModuleBase = (ULONG_PTR)GetModuleHandleA(NULL);
-    dwSectionBase = (DWORD)GetSectionInfo(ModuleBase, Name, SEC_VIRT_ADDR);
-    dwSectionSize = (DWORD)GetSectionInfo(ModuleBase, Name, SEC_VIRT_SIZE /* SEC_RAW_SIZE */);
+    dwSectionBase = (ULONG_PTR)GetSectionInfo(ModuleBase, Name, SEC_VIRT_ADDR);
+    dwSectionSize = (ULONG_PTR)GetSectionInfo(ModuleBase, Name, SEC_VIRT_SIZE /* SEC_RAW_SIZE */);
     if (dwSectionBase == 0 || dwSectionSize == 0) {
         DbgMsg("[-] GuardUntilExecSection- GetSectionInfo (%s) failed : dwSectionBase = 0x%08X ; dwSectionSize = 0x%08X\n", Name, dwSectionBase, dwSectionSize);
         return;
