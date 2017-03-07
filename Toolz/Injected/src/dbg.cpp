@@ -11,9 +11,10 @@ BOOL bCriticalSectionInit = FALSE;
 
 VOID InitCriticalSection(VOID)
 {
+    //printf("[+] InitCriticalSection!\n");
     if (bCriticalSectionInit == FALSE) {
-        bCriticalSectionInit = TRUE;
         InitializeCriticalSection(&CriticalSection);
+        bCriticalSectionInit = TRUE;
     }
 }
 
@@ -77,6 +78,8 @@ VOID DbgMsg(const char* szFormat, ...)
     va_list args;
     static FILE *fFp = NULL;
     static HANDLE hFile = INVALID_HANDLE_VALUE;
+    
+    //return;
     
     //va_start(args, szFormat);
     //memset(cpBuffer, 0, sizeof (cpBuffer));

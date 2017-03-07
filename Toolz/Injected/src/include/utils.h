@@ -27,6 +27,8 @@ typedef struct _PE_INFO {
 #define GET_RETURN_ADDR(pRegs) (*(DWORD*)(pRegs->Esp))
 #endif
 
+#define GET_RETURN_ADDR_POST    GetValue();
+
 #if _WIN64
 #define GET_ARG_1(pRegs) (pRegs->Rcx)
 #else

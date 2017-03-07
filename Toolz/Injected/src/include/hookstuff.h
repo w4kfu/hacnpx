@@ -62,5 +62,8 @@ VOID SetupPreMadeHookWSASend(VOID);
 VOID SetupPreMadeHookWSASendTo(VOID);
 VOID SetupPreMadeHookWSAConnect(VOID);
 VOID SetupHookRetAddr(PPUSHED_REGS pRegs, PROC pfnNew);
+PVOID GetValue(VOID);
+BOOL SetupPrePostInlineHook(LPCSTR ModName, LPCSTR ProcName, PROC pfnNewPre, PROC pfnNewPost);
+BOOL SetupPrePostInlineHook(ULONG_PTR Addr, PROC pfnNewPre, PROC pfnNewPost);
 
 #endif // __HOOKSTUFF_H__

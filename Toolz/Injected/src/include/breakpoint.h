@@ -25,5 +25,6 @@ VOID AddBreakpoint(ULONG_PTR Addr, PVECTORED_EXCEPTION_HANDLER VectoredHandler);
 VOID AddBreakpointAtEP(PVECTORED_EXCEPTION_HANDLER VectoredHandler);
 BOOL RemoveBreakpoint(ULONG_PTR Addr);
 VOID GuardUntilExecSection(const char *Name, PVECTORED_EXCEPTION_HANDLER VectoredHandler);
+BOOL SetupPrePostInlineHook(ULONG_PTR Addr, PROC pfnNewPre, PROC pfnNewPost);
 
 #endif // __BREAKPOINT_H__
