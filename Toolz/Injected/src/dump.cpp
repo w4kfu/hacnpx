@@ -78,7 +78,7 @@ BOOL DumpPE(ULONG_PTR ImageBase, LPCSTR dumpFileName, ULONG_PTR dwEntryPoint, BO
     FixSectionSizeOffset((ULONG_PTR)pDump);
     FixPEHeader((ULONG_PTR)pDump);
     if (dwEntryPoint) {
-        EditPE((ULONG_PTR)pDump, ENTRY_POINT, (PVOID)dwEntryPoint);
+        EditPE((ULONG_PTR)pDump, ENTRY_POINT, (ULONG_PTR)dwEntryPoint);
     }
     if (ImportRec == TRUE) {
         PrepareReconstruct(&pDump, &AllocSize);
@@ -121,11 +121,11 @@ BOOL PrepareReconstruct(PBYTE *pDump, PULONG_PTR AllocSize)
     VirtualFree(pDump, (SIZE_T)AllocSize, 0);
     BuildIT(pNewDump, RVAIT);
     AddPESection((ULONG_PTR)pNewDump, ".inj", (DWORD)RVAIT, (DWORD)SizeNewSection, (DWORD)RVAIT, pinfo.Importer.TotalSizeIT);
-    EditPE((ULONG_PTR)pNewDump, SIZE_OF_IMAGE, (PVOID)(RVAIT + SizeNewSection));
-    EditPE((ULONG_PTR)pNewDump, IMPORT_TABLE, (PVOID)RVAIT);
-    EditPE((ULONG_PTR)pNewDump, IMPORT_TABLE_SIZE, (PVOID)((ULONG_PTR)pinfo.Importer.TotalSizeIT));
-    EditPE((ULONG_PTR)pNewDump, IMPORT_ADDRESS_TABLE, (PVOID)pinfo.Importer.StartIATRVA);
-    EditPE((ULONG_PTR)pNewDump, IMPORT_ADDRESS_TABLE_SIZE, (PVOID)(pinfo.Importer.NbTotalApis * sizeof (ULONG_PTR)));
+    EditPE((ULONG_PTR)pNewDump, SIZE_OF_IMAGE, (ULONG_PTR)(RVAIT + SizeNewSection));
+    EditPE((ULONG_PTR)pNewDump, IMPORT_TABLE, (ULONG_PTR)RVAIT);
+    EditPE((ULONG_PTR)pNewDump, IMPORT_TABLE_SIZE, (ULONG_PTR)((ULONG_PTR)pinfo.Importer.TotalSizeIT));
+    EditPE((ULONG_PTR)pNewDump, IMPORT_ADDRESS_TABLE, (ULONG_PTR)pinfo.Importer.StartIATRVA);
+    EditPE((ULONG_PTR)pNewDump, IMPORT_ADDRESS_TABLE_SIZE, (ULONG_PTR)(pinfo.Importer.NbTotalApis * sizeof (ULONG_PTR)));
     *pDump = pNewDump;
     *AllocSize = (*AllocSize + SizeNewSection);
     return TRUE;

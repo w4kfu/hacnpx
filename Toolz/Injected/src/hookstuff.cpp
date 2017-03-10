@@ -983,8 +983,8 @@ BOOL SetupPrePostInlineHook(ULONG_PTR Addr, PROC pfnNewPre, PROC pfnNewPost)
         DbgMsg("[-] SetupPrePostInlineHook - VirtualProtect failed : %lu\n", GetLastError());
         return FALSE;
     }
-    *(DWORD*)((PBYTE)Trampo + OFFSET_REGION_SIZE_00) = OffsetStore - sizeof (ULONG_PTR);
-    *(DWORD*)((PBYTE)Trampo + OFFSET_REGION_SIZE_01) = OffsetStore - sizeof (ULONG_PTR);
+    *(DWORD*)((PBYTE)Trampo + OFFSET_REGION_SIZE_00) = (OffsetStore - sizeof (ULONG_PTR)) & 0xFFFFFFFF;
+    *(DWORD*)((PBYTE)Trampo + OFFSET_REGION_SIZE_01) = (OffsetStore - sizeof (ULONG_PTR)) & 0xFFFFFFFF;
 #if _WIN64
     if (RelayFunc == NULL) {
         *(PBYTE)Addr = 0xFF;

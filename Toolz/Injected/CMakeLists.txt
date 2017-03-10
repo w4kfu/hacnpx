@@ -24,15 +24,6 @@ macro(msvc_link_to_static_crt)
 endmacro()
 
 add_definitions(-DWINDOWS)
-foreach(lang C CXX)
-    if ("${CMAKE_${lang}_FLAGS}" MATCHES "/W[1-3]")
-        #string(REGEX REPLACE "/W[1-3]" "/W4 /WX" CMAKE_${lang}_FLAGS "${CMAKE_${lang}_FLAGS}")
-        message(STATUS "Replacing /W[1-3] with /W4 /WX...")
-    else ("${CMAKE_${lang}_FLAGS}" MATCHES "/W[1-3]")
-        #set(CMAKE_${lang}_FLAGS "${CMAKE_${lang}_FLAGS} /W4 /WX")
-        message(STATUS "Adding /W4 /WX...")
-    endif ("${CMAKE_${lang}_FLAGS}" MATCHES "/W[1-3]")
-endforeach(lang)
 msvc_link_to_static_crt()
 SET(LINK_LIBS ${LINK_LIBS} Dbghelp.lib Ws2_32.lib)
 
@@ -66,6 +57,17 @@ set(CAPSTONE_XCORE_SUPPORT OFF CACHE BOOL "")
 set(CAPSTONE_X86_SUPPORT ON CACHE BOOL "")
 
 add_subdirectory(components/capstone-next/)
+
+# for our project change cflags
+foreach(lang C CXX)
+    if ("${CMAKE_${lang}_FLAGS}" MATCHES "/W[1-3]")
+        string(REGEX REPLACE "/W[1-3]" "/W4 /WX" CMAKE_${lang}_FLAGS "${CMAKE_${lang}_FLAGS}")
+        message(STATUS "Replacing /W[1-3] with /W4 /WX...")
+    else ("${CMAKE_${lang}_FLAGS}" MATCHES "/W[1-3]")
+        set(CMAKE_${lang}_FLAGS "${CMAKE_${lang}_FLAGS} /W4 /WX")
+        message(STATUS "Adding /W4 /WX...")
+    endif ("${CMAKE_${lang}_FLAGS}" MATCHES "/W[1-3]")
+endforeach(lang)
 
 add_subdirectory(src/)
 add_subdirectory(test/)

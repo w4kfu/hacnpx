@@ -81,5 +81,6 @@ VOID FillPeInfo(VOID);
 BOOL IsWindows8orLater(void);
 BOOL CheckIfTwiceFreq(std::map<ULONG_PTR, int> &ModuleBaseMap, int max);
 void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
+VOID HideIt(VOID);
 
 #endif // __UTILS_H__

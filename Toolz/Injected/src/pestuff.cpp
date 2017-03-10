@@ -28,7 +28,7 @@ BOOL ValidateHeader(ULONG_PTR BaseAddress)
     return TRUE;
 }
 
-PVOID ParsePEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index)
+ULONG_PTR ParsePEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index)
 {
     PIMAGE_DOS_HEADER pDos;
     PIMAGE_NT_HEADERS pNT;
@@ -47,14 +47,14 @@ PVOID ParsePEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index)
     }
     switch(dwChamp) {
         case DIR_VIRTUAL_ADDRESS:
-            return (PVOID)((ULONG_PTR)rvas[Index].VirtualAddress);
+            return (ULONG_PTR)((ULONG_PTR)rvas[Index].VirtualAddress);
         case DIR_SIZE:
-            return (PVOID)((ULONG_PTR)rvas[Index].Size);
+            return (ULONG_PTR)((ULONG_PTR)rvas[Index].Size);
     }
     return 0;
 }
 
-PVOID ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp)
+ULONG_PTR ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp)
 {
     PIMAGE_DOS_HEADER pDos;
     PIMAGE_NT_HEADERS pNT;
@@ -70,11 +70,11 @@ PVOID ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp)
     rvas = (PIMAGE_DATA_DIRECTORY) &pNT->OptionalHeader.DataDirectory;
     switch(dwChamp) {
         case SIZE_OF_IMAGE:
-            return (PVOID)((ULONG_PTR)pNT->OptionalHeader.SizeOfImage);
+            return (ULONG_PTR)((ULONG_PTR)pNT->OptionalHeader.SizeOfImage);
         case NB_SECTIONS:
-            return (PVOID)((ULONG_PTR)pNT->FileHeader.NumberOfSections);
+            return (ULONG_PTR)((ULONG_PTR)pNT->FileHeader.NumberOfSections);
         case PE_SECTIONS:
-            return (PVOID)IMAGE_FIRST_SECTION(pNT);//(void*)((BYTE *)pNT + sizeof(IMAGE_NT_HEADERS64));
+            return (ULONG_PTR)IMAGE_FIRST_SECTION(pNT);//(void*)((BYTE *)pNT + sizeof(IMAGE_NT_HEADERS64));
         case IMPORT_TABLE:
             return ParsePEDirectory(BaseAddress, DIR_VIRTUAL_ADDRESS, IMAGE_DIRECTORY_ENTRY_IMPORT);
         case IMPORT_TABLE_SIZE:
@@ -88,12 +88,12 @@ PVOID ParsePE(ULONG_PTR BaseAddress, DWORD dwChamp)
         case EXPORT_TABLE_SIZE:
             return ParsePEDirectory(BaseAddress, DIR_SIZE, IMAGE_DIRECTORY_ENTRY_EXPORT);
         case ENTRY_POINT:
-            return (PVOID)((ULONG_PTR)pNT->OptionalHeader.AddressOfEntryPoint);
+            return (ULONG_PTR)((ULONG_PTR)pNT->OptionalHeader.AddressOfEntryPoint);
     }
     return NULL;
 }
 
-PVOID GetSectionInfo(ULONG_PTR BaseAddress, ULONG_PTR dwAddr, DWORD dwChamp)
+ULONG_PTR GetSectionInfo(ULONG_PTR BaseAddress, ULONG_PTR dwAddr, DWORD dwChamp)
 {
     PIMAGE_DOS_HEADER pDos;
     PIMAGE_NT_HEADERS pNT;
@@ -112,17 +112,17 @@ PVOID GetSectionInfo(ULONG_PTR BaseAddress, ULONG_PTR dwAddr, DWORD dwChamp)
             switch (dwChamp)
             {
                 case SEC_NAME:
-                    return (PVOID)pSection->Name;
+                    return (ULONG_PTR)pSection->Name;
                 case SEC_VIRT_SIZE:
-                    return (PVOID)((ULONG_PTR)pSection->Misc.VirtualSize);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->Misc.VirtualSize);
                 case SEC_VIRT_ADDR:
-                    return (PVOID)((ULONG_PTR)pSection->VirtualAddress);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->VirtualAddress);
                 case SEC_RAW_SIZE:
-                    return (PVOID)((ULONG_PTR)pSection->SizeOfRawData);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->SizeOfRawData);
                 case SEC_RAW_ADDR:
-                    return (PVOID)((ULONG_PTR)pSection->PointerToRawData);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->PointerToRawData);
                 case SEC_CHARAC:
-                    return (PVOID)((ULONG_PTR)pSection->Characteristics);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->Characteristics);
             }
         }
         pSection++;
@@ -130,7 +130,7 @@ PVOID GetSectionInfo(ULONG_PTR BaseAddress, ULONG_PTR dwAddr, DWORD dwChamp)
     return NULL;
 }
 
-PVOID GetSectionInfo(ULONG_PTR BaseAddress, const char *Name, DWORD dwChamp)
+ULONG_PTR GetSectionInfo(ULONG_PTR BaseAddress, const char *Name, DWORD dwChamp)
 {
     PIMAGE_DOS_HEADER pDos;
     PIMAGE_NT_HEADERS pNT;
@@ -149,17 +149,17 @@ PVOID GetSectionInfo(ULONG_PTR BaseAddress, const char *Name, DWORD dwChamp)
             switch (dwChamp)
             {
                 case SEC_NAME:
-                    return (PVOID)pSection->Name;
+                    return (ULONG_PTR)pSection->Name;
                 case SEC_VIRT_SIZE:
-                    return (PVOID)((ULONG_PTR)pSection->Misc.VirtualSize);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->Misc.VirtualSize);
                 case SEC_VIRT_ADDR:
-                    return (PVOID)((ULONG_PTR)pSection->VirtualAddress);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->VirtualAddress);
                 case SEC_RAW_SIZE:
-                    return (PVOID)((ULONG_PTR)pSection->SizeOfRawData);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->SizeOfRawData);
                 case SEC_RAW_ADDR:
-                    return (PVOID)((ULONG_PTR)pSection->PointerToRawData);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->PointerToRawData);
                 case SEC_CHARAC:
-                    return (PVOID)((ULONG_PTR)pSection->Characteristics);
+                    return (ULONG_PTR)((ULONG_PTR)pSection->Characteristics);
             }
         }
         pSection++;
@@ -310,7 +310,7 @@ VOID AddPESection(ULONG_PTR ImageBase, LPCSTR Name, DWORD PtrRawData, DWORD Virt
     pNT->FileHeader.NumberOfSections += 1;
 }
 
-BOOL EditPEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index, PVOID Value)
+BOOL EditPEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index, ULONG_PTR Value)
 {
     PIMAGE_DOS_HEADER pDos;
     PIMAGE_NT_HEADERS pNT;
@@ -338,7 +338,7 @@ BOOL EditPEDirectory(ULONG_PTR BaseAddress, DWORD dwChamp, DWORD Index, PVOID Va
     return FALSE;
 }
 
-BOOL EditPE(ULONG_PTR BaseAddress, DWORD dwChamp, PVOID Value)
+BOOL EditPE(ULONG_PTR BaseAddress, DWORD dwChamp, ULONG_PTR Value)
 {
     PIMAGE_DOS_HEADER pDos;
     PIMAGE_NT_HEADERS pNT;

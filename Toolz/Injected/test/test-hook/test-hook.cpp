@@ -1,5 +1,7 @@
 #include "test-hook.h"
 
+#include <list>
+
 extern PE_INFO pinfo;
 
 VOID HookMessageBoxA(PPUSHED_REGS pRegs)
@@ -73,13 +75,41 @@ VOID HookInlinePostCreateFileA(PPUSHED_REGS pRegs)
 #endif
 }
 
+VOID PrintModuleInformation(std::list<PMODULE> lModule)
+{
+    std::list<PMODULE>::const_iterator it;
+
+#if _WIN64
+    DbgMsg("Name                           ModuleBase         ModuleSize NbExports\n");
+    DbgMsg("============================== ================== ========== =========\n");
+#else
+    DbgMsg("Name                           ModuleBase ModuleSize NbExports\n");
+    DbgMsg("============================== ========== ========== =========\n");
+#endif
+    for (it = lModule.begin(); it != lModule.end(); ++it) {
+        DbgMsg("%-30s " HEX_FORMAT " 0x%08X %d\n", (*it)->szModule, (*it)->modBaseAddr, (*it)->modBaseSize, (*it)->lExport.size());
+    }
+#if _WIN64
+    DbgMsg("============================== ================== ========== =========\n");
+#else
+    DbgMsg("============================== ========== ========== =========\n");
+#endif
+}
+
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
     (void)hinstDLL;
     (void)lpReserved;
+    std::list<PMODULE> lbefore;
+    std::list<PMODULE> lafter;
 
     if (fdwReason == DLL_PROCESS_ATTACH) {
         StartInjected();
+        lbefore = GetModuleList();
+        PrintModuleInformation(lbefore);
+        HideIt();
+        lafter = GetModuleList();
+        PrintModuleInformation(lafter);
         //LoadLibraryA("USER32.dll");
         //if (SetupIATHook((ULONG_PTR)GetModuleHandleA(NULL), "USER32.dll", "MessageBoxA", (PROC)HookMessageBoxA) == FALSE) {
         //    DbgMsg("[-] SetupIATHook failed!\n");

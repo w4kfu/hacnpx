@@ -56,10 +56,10 @@ VOID HookInlinePostCreateFileA(PPUSHED_REGS pRegs)
 
 int main(int argc, char *argv[])
 {
-    (void)argc;
-    (void)argv;
-    ULONG_PTR BaseOfImage = 0;
-    HMODULE hMod = NULL;
+    UNREFERENCED_PARAMETER(argc);
+    UNREFERENCED_PARAMETER(argv);
+    //ULONG_PTR BaseOfImage = 0;
+    //HMODULE hMod = NULL;
     std::list<PEXPORTENTRY> lExport;
 
     //StartInjected();
@@ -91,6 +91,9 @@ int main(int argc, char *argv[])
     //for (int i = 0; i < 0x100; i++) {
     VirtualAlloc((LPVOID)0x42424242, 0x42424242, 0x42424242, 0x42424242);
     CreateFileA((LPCTSTR)NULL, 0x42424242, 0x42424242, (LPSECURITY_ATTRIBUTES)0x42424242, 0x42424242, 0x42424242, (HANDLE)0x42424242);
+    
+    system("pause");
+    
     //}
     //
     //
