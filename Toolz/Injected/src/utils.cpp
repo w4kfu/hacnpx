@@ -91,3 +91,46 @@ void *memmem(const void *l, size_t l_len, const void *s, size_t s_len)
     
     return NULL;
 }
+
+VOID CreateDump(PEXCEPTION_POINTERS ExceptionInfo)
+{
+    MINIDUMP_EXCEPTION_INFORMATION miniexceptionInfo;
+    miniexceptionInfo.ThreadId = GetCurrentThreadId();
+    miniexceptionInfo.ExceptionPointers = ExceptionInfo;
+    miniexceptionInfo.ClientPointers = FALSE;
+    
+    HANDLE hFile = CreateFileA("moo.dmp", GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+    if (MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpWithFullMemory, &miniexceptionInfo, NULL, NULL) == FALSE) {
+    DbgMsg("[-] MiniDumpWriteDump failed : %lu\n", GetLastError());
+    }
+    DbgMsg("[+] Waiting ... (minidump has been created)\n");
+    while (TRUE) {
+        Sleep(1000);
+    }
+}
+
+VOID MemsetBytes(LPVOID Addr, int c, size_t n)
+{
+    DWORD dwOldProt;
+
+    if (!VirtualProtect(Addr, n, PAGE_EXECUTE_READWRITE, &dwOldProt)) {
+        DbgMsg("[-] MemsetBytes - VirtualProtect(" HEX_FORMAT ", ...) failed for : %lu\n", (ULONG_PTR)Addr, GetLastError());
+        ExitProcess(42);
+    }
+    else {
+        memset(Addr, c, n);
+    }
+}
+
+VOID MemcpyBytes(LPVOID Addr, PVOID src, size_t n)
+{
+    DWORD dwOldProt;
+
+    if (!VirtualProtect(Addr, n, PAGE_EXECUTE_READWRITE, &dwOldProt)) {
+        DbgMsg("[-] MemcpyBytes - VirtualProtect(" HEX_FORMAT ", ...) failed for : %lu\n", (ULONG_PTR)Addr, GetLastError());
+        ExitProcess(42);
+    }
+    else {
+        memcpy(Addr, src, n);
+    }
+}
