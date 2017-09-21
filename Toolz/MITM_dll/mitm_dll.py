@@ -18,7 +18,9 @@ def create_fake_def(l_export, res_dir, fake_asm_name, pe_filename):
     fd_out = open(res_dir + fname, "w")
     fd_out.write("EXPORTS\n")
     for name, virt in l_export:
-        fd_out.write("%s=%s\n" % (name, os.path.splitext(fake_asm_name)[0]+"_"+name))
+        n = name.replace("?", "_")
+        n = n.replace("@", "_")
+        fd_out.write("%s=%s\n" % (name, os.path.splitext(fake_asm_name)[0]+"_"+n))
     
     
 def create_fake_asm(l_export, res_dir, fake_asm_name):
@@ -69,25 +71,29 @@ ENDM
     fd_out = open(res_dir + fake_asm_name, "w")
     fd_out.write(asm_head)
     for name, virt in l_export:
-        fd_out.write("EXTERN Before_%s:PROC\nEXTERN After_%s:PROC\nIFDEF TRAMPO\nEXTERN Real_%s:QWORD\nENDIF\n" % (name, name, name))
+        n = name.replace("?", "_")
+        n = n.replace("@", "_")
+        fd_out.write("EXTERN Before_%s:PROC\nEXTERN After_%s:PROC\nIFDEF TRAMPO\nEXTERN Real_%s:QWORD\nENDIF\n" % (n, n, n))
     fd_out.write("\n\n")
     for name, virt in l_export:
+        n = name.replace("?", "_")
+        n = n.replace("@", "_")
         #buf = os.path.splitext(fake_asm_name)[0]+"_"+name+''' PROC EXPORT
-        buf = os.path.splitext(fake_asm_name)[0]+"_"+name+''' PROC
+        buf = os.path.splitext(fake_asm_name)[0]+"_"+n+''' PROC
         
     IFDEF TRAMPO
 
     PUSHAQ
     mov     rcx, rsp
     sub     rsp, 20h
-    call    Before_'''+name+'''
+    call    Before_'''+n+'''
     add     rsp, 20h
     POPAQ
     
     mov     rax, [rsp]
     mov     save_return_addr, rax
     add     rsp, 8
-    call    qword ptr [Real_'''+name+''']
+    call    qword ptr [Real_'''+n+''']
     sub     rsp, 8
     mov     [rsp - 8], rax
     mov     rax, save_return_addr
@@ -97,7 +103,7 @@ ENDM
     PUSHAQ
     mov     rcx, rsp
     sub     rsp, 20h
-    call    After_'''+name+'''
+    call    After_'''+n+'''
     add     rsp, 20h
     POPAQ
 
@@ -109,7 +115,7 @@ ENDM
     
     ret
     
-'''+os.path.splitext(fake_asm_name)[0]+"_"+name+''' ENDP\n\n'''
+'''+os.path.splitext(fake_asm_name)[0]+"_"+n+''' ENDP\n\n'''
         fd_out.write(buf)
     fd_out.write("\n\nend\n")
     fd_out.close()
@@ -118,8 +124,10 @@ def create_fake_c(l_export, res_dir, fake_c_name, original_dll):
     real_out = ""
     real_getproc = ""
     for name, virt in l_export:
-        real_out += "FARPROC Real_%s;\n" % name
-        real_getproc += 'Real_%s = GetProcAddress(hModuleOriginal, "%s");\n' % (name, name)
+        n = name.replace("?", "_")
+        n = n.replace("@", "_")
+        real_out += "FARPROC Real_%s;\n" % n
+        real_getproc += 'Real_%s = GetProcAddress(hModuleOriginal, "%s");\n' % (n, name)
     real_c = '''#if TRAMPO
 '''+real_out+'''
 VOID LoadAllRealExport(HMODULE hModuleOriginal)
@@ -153,6 +161,48 @@ struct all_reg_64
     DWORD64 rbx;
     DWORD64 rax;
 };
+
+PVOID protVectoredHandler = NULL;
+
+#if _WIN64
+    #define HEX_FORMAT "0x%016llX"
+#else
+    #define HEX_FORMAT "0x%08X"
+#endif
+
+VOID DbgPrintContext(PCONTEXT pContext, BOOL bDisas)
+{
+#if _WIN64
+    printf("[+] rax= " HEX_FORMAT " rbx= " HEX_FORMAT " rcx= " HEX_FORMAT "\\n", pContext->Rax, pContext->Rbx, pContext->Rcx);
+    printf("[+] rdx= " HEX_FORMAT " rsi= " HEX_FORMAT " rdi= " HEX_FORMAT "\\n", pContext->Rdx, pContext->Rsi, pContext->Rdi);
+    printf("[+] rip= " HEX_FORMAT " rsp= " HEX_FORMAT " rbp= " HEX_FORMAT "\\n", pContext->Rip, pContext->Rsp, pContext->Rbp);
+    printf("[+]  r8= " HEX_FORMAT "  r9= " HEX_FORMAT " r10= " HEX_FORMAT "\\n", pContext->R8, pContext->R9, pContext->R10);
+    printf("[+] r11= " HEX_FORMAT " r12= " HEX_FORMAT " r13= " HEX_FORMAT "\\n", pContext->R11, pContext->R12, pContext->R13);
+    printf("[+] r14= " HEX_FORMAT " r15= " HEX_FORMAT "\\n", pContext->R14, pContext->R15);
+#else
+    printf("[+] eax= " HEX_FORMAT " ebx= " HEX_FORMAT " ecx= " HEX_FORMAT " edx= " HEX_FORMAT " esi= " HEX_FORMAT " edi= " HEX_FORMAT "\\n", pContext->Eax, pContext->Ebx, pContext->Ecx, pContext->Edx, pContext->Esi, pContext->Edi);
+    printf("[+] eip= " HEX_FORMAT " esp= " HEX_FORMAT " ebp= " HEX_FORMAT "\\n", pContext->Eip, pContext->Esp, pContext->Ebp);
+#endif
+    printf("[+] dr0= " HEX_FORMAT " dr1= " HEX_FORMAT " dr2= " HEX_FORMAT "\\n", pContext->Dr0, pContext->Dr1, pContext->Dr2);
+    printf("[+] dr3= " HEX_FORMAT " dr6= " HEX_FORMAT " dr7= " HEX_FORMAT "\\n", pContext->Dr3, pContext->Dr6, pContext->Dr7);
+}
+
+
+LONG CALLBACK ProtectionFaultVectoredHandler(PEXCEPTION_POINTERS ExceptionInfo)
+{
+    ULONG_PTR BaseOfImage;
+    BYTE Filename[0x200];
+
+    if (ExceptionInfo->ExceptionRecord->ExceptionCode == 0x40010006) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+    if (ExceptionInfo->ExceptionRecord->ExceptionCode == 0x406D1388) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+    printf("[+] ExceptionInfo->ExceptionRecord->ExceptionCode : 0x%08X\\n", ExceptionInfo->ExceptionRecord->ExceptionCode);
+    DbgPrintContext(ExceptionInfo->ContextRecord, TRUE);
+    return EXCEPTION_CONTINUE_SEARCH;
+}
 
 int init = 0;
 
@@ -303,6 +353,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
     
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
+        protVectoredHandler = AddVectoredExceptionHandler(0x1, ProtectionFaultVectoredHandler);
         MakeConsole();
         hModule = GetModuleHandleA(NULL);
         DisableThreadLibraryCalls(hModule);
@@ -322,13 +373,15 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 def append_fake_export(l_export, res_dir, fake_c_name):
     fd_out = open(res_dir + fake_c_name, "a")
     for name, virt in l_export:
-        buf = '''void Before_'''+name+'''(struct all_reg_64 *reg)
+        n = name.replace("?", "_")
+        n = n.replace("@", "_")
+        buf = '''void Before_'''+n+'''(struct all_reg_64 *reg)
 {
     PrintHead("'''+name+'''");
     PrintInfoReg(reg, TRUE);
 }
 
-void After_'''+name+'''(struct all_reg_64 *reg)
+void After_'''+n+'''(struct all_reg_64 *reg)
 {
     PrintInfoReg(reg, FALSE);
     PrintBottom();
